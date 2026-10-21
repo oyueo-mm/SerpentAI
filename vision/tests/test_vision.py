@@ -244,3 +244,34 @@ def test_runner_stops_on_navigation_estop_and_control_endpoint(policy: MlpPolicy
     st = Status(command="estop")
     s = VisionRunner(GuardedPage(FakePage([img] * 50)), policy, RunnerConfig(max_seconds=5), status=st).run()
     assert st.state == "estopped" and "estop" in s["endReason"]
+
+
+CNN_MODEL = Path(__file__).resolve().parents[1] / "models" / "seg-v1.pt"
+
+
+@pytest.mark.skipif(not CNN_MODEL.exists() or not FRAMES, reason="trained segmentation model not present")
+def test_cnn_detector_follows_the_same_contract():
+    from vision.segmentation.cnn import CnnDetector
+    det_cnn = CnnDetector(CNN_MODEL)
+    for path in FRAMES:
+        img, gt, draw = load(path)
+        d = det_cnn(img)
+        assert d.ok, d.reason
+        assert abs(d.zoom - draw["cam"]["zoom"]) / draw["cam"]["zoom"] < 0.02
+        assert math.degrees(angle_err(d.self_heading, gt["self"]["heading"])) < 10
+        s, _ = VisionObserver().observe(d, 0.0, 0.0, False)
+        assert s is not None and len(encode_obs(s, 0.0, False)) == OBS_SIZE
+
+
+def test_opponent_speed_is_unbiased_under_position_noise():
+    """Regression (sim2visual-v1): noisy head positions must not turn cruising snakes into 'boosting' ones."""
+    from vision.observation.from_vision import opponent_speed
+    rng = np.random.default_rng(0)
+    for true_speed in (150.0, 300.0):
+        tr = Tracker()
+        heading = 0.7
+        for k in range(30):
+            t = k * 0.1
+            x, y = true_speed * t * math.cos(heading), true_speed * t * math.sin(heading)
+            tr.update(t, [(x + rng.normal(0, 4), y + rng.normal(0, 4), 30.0, 10.0, heading)])
+        assert opponent_speed(tr.tracks[0], heading) == true_speed

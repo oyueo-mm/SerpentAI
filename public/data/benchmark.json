@@ -1,0 +1,129 @@
+{
+ "env": {
+  "node": "v24.19.0",
+  "platform": "win32 10.0.26200",
+  "cpu": "Intel(R) Core(TM) Ultra 7 256V",
+  "cores": 8,
+  "memGB": 16,
+  "date": "2026-10-21T12:31:41.042Z"
+ },
+ "engineBySnakes": [
+  {
+   "snakes": 5,
+   "tickMs": 0.12928618600424133,
+   "ups": 7734.778408322713
+  },
+  {
+   "snakes": 10,
+   "tickMs": 0.19680888998035398,
+   "ups": 5081.0712874800665
+  },
+  {
+   "snakes": 20,
+   "tickMs": 0.3205286516853925,
+   "ups": 3119.8459006451844
+  },
+  {
+   "snakes": 30,
+   "tickMs": 0.41071296758104553,
+   "ups": 2434.790422833852
+  },
+  {
+   "snakes": 50,
+   "tickMs": 0.5802845971564063,
+   "ups": 1723.2923377603734
+  }
+ ],
+ "engineByLength": [
+  {
+   "length": 240,
+   "vertices": 800,
+   "tickMs": 0.24874723997675746
+  },
+  {
+   "length": 1000,
+   "vertices": 3340,
+   "tickMs": 0.7380880487805016
+  },
+  {
+   "length": 3000,
+   "vertices": 10000,
+   "tickMs": 1.8773930000000292
+  },
+  {
+   "length": 6000,
+   "vertices": 20000,
+   "tickMs": 3.0888810344827893
+  }
+ ],
+ "collision": {
+  "snakes": 20,
+  "length": 1000,
+  "rebuildMs": 0.17033238717002558,
+  "detectMs": 0.00877341463058005,
+  "segments": 3340
+ },
+ "decisions": [
+  {
+   "policy": "random",
+   "decideMs": 0.00005833397901836368
+  },
+  {
+   "policy": "greedy",
+   "decideMs": 0.016844152490034243
+  },
+  {
+   "policy": "survival",
+   "decideMs": 0.15464724226804138
+  },
+  {
+   "policy": "aggressive",
+   "decideMs": 0.02979162901544113
+  },
+  {
+   "policy": "potential",
+   "decideMs": 0.0115237367238366
+  },
+  {
+   "policy": "hybrid",
+   "decideMs": 0.06676224966622167
+  },
+  {
+   "policy": "mpc-lite",
+   "decideMs": 0.06122810204081621
+  },
+  {
+   "policy": "mpc",
+   "decideMs": 0.30659586101175224
+  }
+ ],
+ "observation": {
+  "senseAndEncodeMs": 0.15706576812352807
+ },
+ "mlp": {
+  "model": "il-v1-bc",
+  "layers": [
+   "84→256",
+   "256→256",
+   "256→18"
+  ],
+  "inferMs": 0.06674510567296983
+ },
+ "envThroughput": [
+  {
+   "scenario": "A-food",
+   "stepsPerSec": 26437.19409744441,
+   "ticksPerSec": 79311.58229233325
+  },
+  {
+   "scenario": "C-moving",
+   "stepsPerSec": 3767.555679600185,
+   "ticksPerSec": 11302.667038800555
+  },
+  {
+   "scenario": "D-mixed",
+   "stepsPerSec": 681.8486750507166,
+   "ticksPerSec": 2045.5460251521497
+  }
+ ]
+}

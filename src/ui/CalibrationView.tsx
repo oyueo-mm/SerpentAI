@@ -20,6 +20,7 @@ interface CalibrationFile { tags: Record<string, { mean: number; n: number }>; p
 export function CalibrationView() {
   const s = useJson<S2V>(`${B}data/vision/sim2visual.json`);
   const cal = useJson<CalibrationFile>(`${B}data/vision/calibration.json`);
+  const v1 = useJson<S2V>(`${B}data/vision/sim2visual-v1.json`);
   const d = s.data;
   const order = ['A', 'B', 'C', 'D', 'E', 'F'].filter((k) => d?.conditions[k]);
   const vis = ['D', 'E', 'F'].filter((k) => d?.measured[k]);
@@ -65,6 +66,12 @@ export function CalibrationView() {
           )}
         </>
       ) : <Missing what="Sim-to-Visual 실험" how="python -m vision.sim2visual --model public/models/<model>.json --episodes 8" />}
+      {d && v1.data && (
+        <Card title="관측기 수정 전후 (v1 → v2)" subtitle="v1 관측기는 추적 속도의 크기를 그대로 써서 순항 중인 상대를 부스트 중으로 읽었습니다(상대 속도 특징 편향 +0.81). v2는 속도를 눈 방향으로 투영해 순항/부스트로 분류합니다(편향 +0.31). 같은 시드로 A–F를 다시 실행했습니다. 실시간 조건(E, F)은 같은 코드로도 실행마다 크게 달라집니다 — 표본 8개의 신뢰구간을 보세요.">
+          <Table head={['조건', 'v1 생존 s', 'v2 생존 s', 'v1 사망률 %', 'v2 사망률 %']}
+            rows={order.map((k) => [COND[k], fmtCI(v1.data!.conditions[k]?.survivalS), fmtCI(d.conditions[k]?.survivalS), fmt((v1.data!.conditions[k]?.deathRate ?? NaN) * 100, 0), fmt(d.conditions[k].deathRate * 100, 0)])} />
+        </Card>
+      )}
       {cal.data && (
         <Card title="오차가 큰 상황 자동 수집" subtitle="실시간 세션의 각 제어 스텝을 상황별로 분류하고, 그 스텝의 관측 MAE 평균을 비교합니다."
           table={<Table head={['상황', '스텝 수', '관측 MAE']} rows={Object.entries(cal.data.tags).map(([k, v]) => [k, v.n, fmt(v.mean, 4)])} />}>

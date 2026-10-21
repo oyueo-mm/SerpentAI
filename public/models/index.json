@@ -1,0 +1,24 @@
+{
+ "models": [
+  {
+   "id": "ppo-dagger-v1",
+   "file": "ppo-dagger-v1.json"
+  },
+  {
+   "id": "ppo-bc-v1",
+   "file": "ppo-bc-v1.json"
+  },
+  {
+   "id": "ppo-random-v1",
+   "file": "ppo-random-v1.json"
+  },
+  {
+   "id": "il-v1-dagger-r2",
+   "file": "il-v1-dagger-r2.json"
+  },
+  {
+   "id": "il-v1-bc",
+   "file": "il-v1-bc.json"
+  }
+ ]
+}

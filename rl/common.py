@@ -131,13 +131,13 @@ def evaluate_in_node(model_file: Path | str | None, policy_id: str, env: dict[st
 
 
 def summarize_episodes(eps: list[dict]) -> dict[str, Any]:
-    def ci(xs: list[float]) -> dict[str, float]:
+    def ci(xs: list[float], floor: float = -math.inf) -> dict[str, float]:
         a = np.asarray(xs, dtype=float)
         if len(a) == 0:
             return {"mean": math.nan, "lo": math.nan, "hi": math.nan, "n": 0}
         m = float(a.mean())
         h = 1.96 * float(a.std(ddof=1)) / math.sqrt(len(a)) if len(a) > 1 else 0.0
-        return {"mean": m, "lo": m - h, "hi": m + h, "n": len(a)}
+        return {"mean": m, "lo": max(floor, m - h), "hi": m + h, "n": len(a)}
 
     def wilson(k: int, n: int) -> dict[str, float]:
         if n == 0:
@@ -155,11 +155,11 @@ def summarize_episodes(eps: list[dict]) -> dict[str, Any]:
     return {
         "episodes": n,
         "return": ci([e["r"] for e in eps]),
-        "survivalS": ci([e["survivalS"] for e in eps]),
-        "finalLength": ci([e["finalLength"] for e in eps]),
-        "maxLength": ci([e["maxLength"] for e in eps]),
-        "eaten": ci([e["eaten"] for e in eps]),
-        "kills": ci([e["kills"] for e in eps]),
+        "survivalS": ci([e["survivalS"] for e in eps], 0.0),
+        "finalLength": ci([e["finalLength"] for e in eps], 0.0),
+        "maxLength": ci([e["maxLength"] for e in eps], 0.0),
+        "eaten": ci([e["eaten"] for e in eps], 0.0),
+        "kills": ci([e["kills"] for e in eps], 0.0),
         "deathRate": wilson(len(deaths), n),
         "wallDeathRate": wilson(sum(1 for e in deaths if e["death"] == "wall"), n),
         "collisionDeathRate": wilson(sum(1 for e in deaths if e["death"] != "wall"), n),
@@ -172,9 +172,23 @@ def obs_size_check() -> None:
     assert OBS_SIZE == 84 and NUM_ACTIONS == 18
 
 
+def finite(obj: Any) -> Any:
+    """Replaces NaN/±Infinity with None: browsers' JSON.parse rejects Python's NaN tokens."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: finite(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [finite(v) for v in obj]
+    if isinstance(obj, (np.floating, np.integer)):
+        return finite(obj.item())
+    return obj
+
+
 def save_json(path: Path, obj: Any) -> None:
+    """Strict JSON (no NaN/Infinity) so the web pages can read it."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=1, default=float))
+    path.write_text(json.dumps(finite(obj), indent=1, default=float, allow_nan=False))
 
 
 def vecnormalize_for(venv, obs_rms=None, training: bool = True) -> VecNormalize:

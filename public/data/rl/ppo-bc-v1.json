@@ -1,0 +1,667 @@
+{
+ "run": "ppo-bc-v1",
+ "variant": "bc",
+ "init": "rl/runs/il-v1/bc-r0.zip",
+ "steps": 2035712,
+ "budget": 2000000,
+ "seconds": 1120.8493077754974,
+ "curve": [
+  {
+   "step": 100352,
+   "return": 5.7199691458725,
+   "survivalS": 60.94305555555555,
+   "maxLength": 742.4643388296732,
+   "deathRate": 0.8333333333333334,
+   "kills": 0.625,
+   "stage": "A"
+  },
+  {
+   "step": 200704,
+   "return": 8.022765781306608,
+   "survivalS": 64.1986111111111,
+   "maxLength": 938.9099114639957,
+   "deathRate": 0.7916666666666666,
+   "kills": 1.0833333333333333,
+   "stage": "B"
+  },
+  {
+   "step": 301056,
+   "return": 11.790311108428588,
+   "survivalS": 84.47777777777777,
+   "maxLength": 1251.9269441761933,
+   "deathRate": 0.6666666666666666,
+   "kills": 1.2916666666666667,
+   "stage": "B"
+  },
+  {
+   "step": 401408,
+   "return": 10.60511254704425,
+   "survivalS": 79.09444444444445,
+   "maxLength": 1152.7695880377594,
+   "deathRate": 0.5416666666666666,
+   "kills": 0.875,
+   "stage": "C"
+  },
+  {
+   "step": 501760,
+   "return": 8.764007038280601,
+   "survivalS": 65.69305555555556,
+   "maxLength": 1012.1423704947274,
+   "deathRate": 0.7083333333333334,
+   "kills": 0.875,
+   "stage": "C"
+  },
+  {
+   "step": 602112,
+   "return": 9.585765158092027,
+   "survivalS": 74.32083333333334,
+   "maxLength": 1070.8181824758667,
+   "deathRate": 0.6666666666666666,
+   "kills": 0.9166666666666666,
+   "stage": "C"
+  },
+  {
+   "step": 702464,
+   "return": 12.089354177766657,
+   "survivalS": 85.34583333333335,
+   "maxLength": 1261.61875111,
+   "deathRate": 0.5,
+   "kills": 1.3333333333333333,
+   "stage": "D"
+  },
+  {
+   "step": 802816,
+   "return": 12.819925739021441,
+   "survivalS": 93.4513888888889,
+   "maxLength": 1322.617573902142,
+   "deathRate": 0.4583333333333333,
+   "kills": 1.1666666666666667,
+   "stage": "D"
+  },
+  {
+   "step": 903168,
+   "return": 12.844469306468978,
+   "survivalS": 93.11666666666667,
+   "maxLength": 1328.3677639802297,
+   "deathRate": 0.4583333333333333,
+   "kills": 1.125,
+   "stage": "D"
+  },
+  {
+   "step": 1003520,
+   "return": 13.045015048402936,
+   "survivalS": 99.41944444444444,
+   "maxLength": 1358.5369215069525,
+   "deathRate": 0.4583333333333333,
+   "kills": 0.6666666666666666,
+   "stage": "D"
+  },
+  {
+   "step": 1103872,
+   "return": 14.443258072325122,
+   "survivalS": 100.53194444444445,
+   "maxLength": 1466.796640565838,
+   "deathRate": 0.375,
+   "kills": 1.0833333333333333,
+   "stage": "D"
+  },
+  {
+   "step": 1204224,
+   "return": 14.871559534173935,
+   "survivalS": 100.40694444444443,
+   "maxLength": 1487.905953417392,
+   "deathRate": 0.375,
+   "kills": 1.5416666666666667,
+   "stage": "D"
+  },
+  {
+   "step": 1304576,
+   "return": 15.71631841698464,
+   "survivalS": 107.70555555555556,
+   "maxLength": 1560.823508365131,
+   "deathRate": 0.25,
+   "kills": 1.2083333333333333,
+   "stage": "E"
+  },
+  {
+   "step": 1404928,
+   "return": 14.771893302777451,
+   "survivalS": 100.27083333333333,
+   "maxLength": 1473.3800060353153,
+   "deathRate": 0.2916666666666667,
+   "kills": 1.4583333333333333,
+   "stage": "E"
+  },
+  {
+   "step": 1505280,
+   "return": 15.496696568904175,
+   "survivalS": 106.08888888888889,
+   "maxLength": 1542.407156890411,
+   "deathRate": 0.2916666666666667,
+   "kills": 1.2916666666666667,
+   "stage": "E"
+  },
+  {
+   "step": 1605632,
+   "return": 13.380804258068812,
+   "survivalS": 100.15277777777777,
+   "maxLength": 1361.3387591402086,
+   "deathRate": 0.3333333333333333,
+   "kills": 1.0,
+   "stage": "F"
+  },
+  {
+   "step": 1705984,
+   "return": 12.672280636776222,
+   "survivalS": 97.50555555555555,
+   "maxLength": 1311.7988970109516,
+   "deathRate": 0.4166666666666667,
+   "kills": 0.875,
+   "stage": "F"
+  },
+  {
+   "step": 1806336,
+   "return": 15.419079154477343,
+   "survivalS": 104.59305555555557,
+   "maxLength": 1544.7433321143956,
+   "deathRate": 0.20833333333333334,
+   "kills": 1.0,
+   "stage": "F"
+  },
+  {
+   "step": 1906688,
+   "return": 17.306998654353094,
+   "survivalS": 109.6611111111111,
+   "maxLength": 1705.7456987686448,
+   "deathRate": 0.2916666666666667,
+   "kills": 1.5416666666666667,
+   "stage": "F"
+  },
+  {
+   "step": 2007040,
+   "return": 13.86805569879573,
+   "survivalS": 95.90833333333335,
+   "maxLength": 1418.8972365462394,
+   "deathRate": 0.4583333333333333,
+   "kills": 1.25,
+   "stage": "F"
+  }
+ ],
+ "gates": [
+  {
+   "stage": "A",
+   "metric": "eaten",
+   "value": 1098.0,
+   "pass": true,
+   "step": 172032
+  },
+  {
+   "stage": "B",
+   "metric": "deathRate",
+   "value": 0.3125,
+   "pass": true,
+   "step": 344064
+  },
+  {
+   "stage": "C",
+   "metric": "deathRate",
+   "value": 0.1875,
+   "pass": true,
+   "step": 630784
+  },
+  {
+   "stage": "D",
+   "metric": "survivalS",
+   "value": 86.34583333333333,
+   "pass": true,
+   "step": 1232896
+  },
+  {
+   "stage": "E",
+   "metric": "survivalS",
+   "value": 103.10833333333333,
+   "pass": true,
+   "step": 1533952
+  }
+ ],
+ "bestStep": 1906688,
+ "bestScore": 17.306998654353094,
+ "supervisor": [
+  {
+   "t": 1792580725.7417629,
+   "kind": "validation",
+   "step": 100352,
+   "score": 5.7199691458725,
+   "best": null,
+   "lr": 0.0003,
+   "target_kl": 0.03,
+   "details": {
+    "step": 100352,
+    "return": 5.7199691458725,
+    "survivalS": 60.94305555555555,
+    "maxLength": 742.4643388296732,
+    "deathRate": 0.8333333333333334,
+    "kills": 0.625,
+    "stage": "A"
+   }
+  },
+  {
+   "t": 1792580753.8992913,
+   "kind": "validation",
+   "step": 200704,
+   "score": 8.022765781306608,
+   "best": 5.7199691458725,
+   "lr": 0.0003,
+   "target_kl": 0.03,
+   "details": {
+    "step": 200704,
+    "return": 8.022765781306608,
+    "survivalS": 64.1986111111111,
+    "maxLength": 938.9099114639957,
+    "deathRate": 0.7916666666666666,
+    "kills": 1.0833333333333333,
+    "stage": "B"
+   }
+  },
+  {
+   "t": 1792580791.5781577,
+   "kind": "validation",
+   "step": 301056,
+   "score": 11.790311108428588,
+   "best": 8.022765781306608,
+   "lr": 0.0003,
+   "target_kl": 0.03,
+   "details": {
+    "step": 301056,
+    "return": 11.790311108428588,
+    "survivalS": 84.47777777777777,
+    "maxLength": 1251.9269441761933,
+    "deathRate": 0.6666666666666666,
+    "kills": 1.2916666666666667,
+    "stage": "B"
+   }
+  },
+  {
+   "t": 1792580831.126591,
+   "kind": "validation",
+   "step": 401408,
+   "score": 10.60511254704425,
+   "best": 11.790311108428588,
+   "lr": 0.0003,
+   "target_kl": 0.03,
+   "details": {
+    "step": 401408,
+    "return": 10.60511254704425,
+    "survivalS": 79.09444444444445,
+    "maxLength": 1152.7695880377594,
+    "deathRate": 0.5416666666666666,
+    "kills": 0.875,
+    "stage": "C"
+   }
+  },
+  {
+   "t": 1792580831.126591,
+   "kind": "intervention",
+   "step": 401408,
+   "action": "preserve",
+   "reason": "keep the current checkpoint for comparison"
+  },
+  {
+   "t": 1792580865.1737077,
+   "kind": "validation",
+   "step": 501760,
+   "score": 8.764007038280601,
+   "best": 11.790311108428588,
+   "lr": 0.0003,
+   "target_kl": 0.03,
+   "details": {
+    "step": 501760,
+    "return": 8.764007038280601,
+    "survivalS": 65.69305555555556,
+    "maxLength": 1012.1423704947274,
+    "deathRate": 0.7083333333333334,
+    "kills": 0.875,
+    "stage": "C"
+   }
+  },
+  {
+   "t": 1792580865.1747081,
+   "kind": "intervention",
+   "step": 501760,
+   "action": "preserve",
+   "reason": "keep the current checkpoint for comparison"
+  },
+  {
+   "t": 1792580865.1747081,
+   "kind": "intervention",
+   "step": 501760,
+   "action": "reduce_lr",
+   "reason": "2 consecutive worse validations: lr 3.00e-04 \u2192 1.50e-04, target_kl 0.03 \u2192 0.0150",
+   "lr": 0.00015,
+   "target_kl": 0.015
+  },
+  {
+   "t": 1792580899.9406755,
+   "kind": "validation",
+   "step": 602112,
+   "score": 9.585765158092027,
+   "best": 11.790311108428588,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 602112,
+    "return": 9.585765158092027,
+    "survivalS": 74.32083333333334,
+    "maxLength": 1070.8181824758667,
+    "deathRate": 0.6666666666666666,
+    "kills": 0.9166666666666666,
+    "stage": "C"
+   }
+  },
+  {
+   "t": 1792580899.9406755,
+   "kind": "intervention",
+   "step": 602112,
+   "action": "preserve",
+   "reason": "keep the current checkpoint for comparison"
+  },
+  {
+   "t": 1792580959.768272,
+   "kind": "validation",
+   "step": 702464,
+   "score": 12.089354177766657,
+   "best": 11.790311108428588,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 702464,
+    "return": 12.089354177766657,
+    "survivalS": 85.34583333333335,
+    "maxLength": 1261.61875111,
+    "deathRate": 0.5,
+    "kills": 1.3333333333333333,
+    "stage": "D"
+   }
+  },
+  {
+   "t": 1792581024.4208982,
+   "kind": "validation",
+   "step": 802816,
+   "score": 12.819925739021441,
+   "best": 12.089354177766657,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 802816,
+    "return": 12.819925739021441,
+    "survivalS": 93.4513888888889,
+    "maxLength": 1322.617573902142,
+    "deathRate": 0.4583333333333333,
+    "kills": 1.1666666666666667,
+    "stage": "D"
+   }
+  },
+  {
+   "t": 1792581088.5775325,
+   "kind": "validation",
+   "step": 903168,
+   "score": 12.844469306468978,
+   "best": 12.819925739021441,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 903168,
+    "return": 12.844469306468978,
+    "survivalS": 93.11666666666667,
+    "maxLength": 1328.3677639802297,
+    "deathRate": 0.4583333333333333,
+    "kills": 1.125,
+    "stage": "D"
+   }
+  },
+  {
+   "t": 1792581151.3317502,
+   "kind": "validation",
+   "step": 1003520,
+   "score": 13.045015048402936,
+   "best": 12.844469306468978,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 1003520,
+    "return": 13.045015048402936,
+    "survivalS": 99.41944444444444,
+    "maxLength": 1358.5369215069525,
+    "deathRate": 0.4583333333333333,
+    "kills": 0.6666666666666666,
+    "stage": "D"
+   }
+  },
+  {
+   "t": 1792581214.5386596,
+   "kind": "validation",
+   "step": 1103872,
+   "score": 14.443258072325122,
+   "best": 13.045015048402936,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 1103872,
+    "return": 14.443258072325122,
+    "survivalS": 100.53194444444445,
+    "maxLength": 1466.796640565838,
+    "deathRate": 0.375,
+    "kills": 1.0833333333333333,
+    "stage": "D"
+   }
+  },
+  {
+   "t": 1792581278.2387252,
+   "kind": "validation",
+   "step": 1204224,
+   "score": 14.871559534173935,
+   "best": 14.443258072325122,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 1204224,
+    "return": 14.871559534173935,
+    "survivalS": 100.40694444444443,
+    "maxLength": 1487.905953417392,
+    "deathRate": 0.375,
+    "kills": 1.5416666666666667,
+    "stage": "D"
+   }
+  },
+  {
+   "t": 1792581347.6529803,
+   "kind": "validation",
+   "step": 1304576,
+   "score": 15.71631841698464,
+   "best": 14.871559534173935,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 1304576,
+    "return": 15.71631841698464,
+    "survivalS": 107.70555555555556,
+    "maxLength": 1560.823508365131,
+    "deathRate": 0.25,
+    "kills": 1.2083333333333333,
+    "stage": "E"
+   }
+  },
+  {
+   "t": 1792581404.0546386,
+   "kind": "validation",
+   "step": 1404928,
+   "score": 14.771893302777451,
+   "best": 15.71631841698464,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 1404928,
+    "return": 14.771893302777451,
+    "survivalS": 100.27083333333333,
+    "maxLength": 1473.3800060353153,
+    "deathRate": 0.2916666666666667,
+    "kills": 1.4583333333333333,
+    "stage": "E"
+   }
+  },
+  {
+   "t": 1792581450.430483,
+   "kind": "validation",
+   "step": 1505280,
+   "score": 15.496696568904175,
+   "best": 15.71631841698464,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 1505280,
+    "return": 15.496696568904175,
+    "survivalS": 106.08888888888889,
+    "maxLength": 1542.407156890411,
+    "deathRate": 0.2916666666666667,
+    "kills": 1.2916666666666667,
+    "stage": "E"
+   }
+  },
+  {
+   "t": 1792581522.3340783,
+   "kind": "validation",
+   "step": 1605632,
+   "score": 13.380804258068812,
+   "best": 15.71631841698464,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 1605632,
+    "return": 13.380804258068812,
+    "survivalS": 100.15277777777777,
+    "maxLength": 1361.3387591402086,
+    "deathRate": 0.3333333333333333,
+    "kills": 1.0,
+    "stage": "F"
+   }
+  },
+  {
+   "t": 1792581522.3350868,
+   "kind": "intervention",
+   "step": 1605632,
+   "action": "preserve",
+   "reason": "keep the current checkpoint for comparison"
+  },
+  {
+   "t": 1792581592.8550239,
+   "kind": "validation",
+   "step": 1705984,
+   "score": 12.672280636776222,
+   "best": 15.71631841698464,
+   "lr": 0.00015,
+   "target_kl": 0.015,
+   "details": {
+    "step": 1705984,
+    "return": 12.672280636776222,
+    "survivalS": 97.50555555555555,
+    "maxLength": 1311.7988970109516,
+    "deathRate": 0.4166666666666667,
+    "kills": 0.875,
+    "stage": "F"
+   }
+  },
+  {
+   "t": 1792581592.8550239,
+   "kind": "intervention",
+   "step": 1705984,
+   "action": "preserve",
+   "reason": "keep the current checkpoint for comparison"
+  },
+  {
+   "t": 1792581592.8550239,
+   "kind": "intervention",
+   "step": 1705984,
+   "action": "reduce_lr",
+   "reason": "2 consecutive worse validations: lr 1.50e-04 \u2192 7.50e-05, target_kl 0.015 \u2192 0.0075",
+   "lr": 7.5e-05,
+   "target_kl": 0.0075
+  },
+  {
+   "t": 1792581662.7497237,
+   "kind": "validation",
+   "step": 1806336,
+   "score": 15.419079154477343,
+   "best": 15.71631841698464,
+   "lr": 7.5e-05,
+   "target_kl": 0.0075,
+   "details": {
+    "step": 1806336,
+    "return": 15.419079154477343,
+    "survivalS": 104.59305555555557,
+    "maxLength": 1544.7433321143956,
+    "deathRate": 0.20833333333333334,
+    "kills": 1.0,
+    "stage": "F"
+   }
+  },
+  {
+   "t": 1792581733.675262,
+   "kind": "validation",
+   "step": 1906688,
+   "score": 17.306998654353094,
+   "best": 15.71631841698464,
+   "lr": 7.5e-05,
+   "target_kl": 0.0075,
+   "details": {
+    "step": 1906688,
+    "return": 17.306998654353094,
+    "survivalS": 109.6611111111111,
+    "maxLength": 1705.7456987686448,
+    "deathRate": 0.2916666666666667,
+    "kills": 1.5416666666666667,
+    "stage": "F"
+   }
+  },
+  {
+   "t": 1792581805.7712383,
+   "kind": "validation",
+   "step": 2007040,
+   "score": 13.86805569879573,
+   "best": 17.306998654353094,
+   "lr": 7.5e-05,
+   "target_kl": 0.0075,
+   "details": {
+    "step": 2007040,
+    "return": 13.86805569879573,
+    "survivalS": 95.90833333333335,
+    "maxLength": 1418.8972365462394,
+    "deathRate": 0.4583333333333333,
+    "kills": 1.25,
+    "stage": "F"
+   }
+  },
+  {
+   "t": 1792581805.772238,
+   "kind": "intervention",
+   "step": 2007040,
+   "action": "preserve",
+   "reason": "keep the current checkpoint for comparison"
+  }
+ ],
+ "anomalies": {},
+ "hyper": {
+  "variant": "bc",
+  "init": "rl/runs/il-v1/bc-r0.zip",
+  "obs_stats": "C:\\Users\\hihi9\\Desktop\\Projects\\SerpentAI\\rl\\runs\\il-v1\\obs_stats.npz",
+  "steps": "2000000",
+  "run": "ppo-bc-v1",
+  "model_id": "None",
+  "seed": "3",
+  "bridges": "7",
+  "envs_per_bridge": "8",
+  "eval_every": "100000",
+  "ckpt_every": "100000",
+  "snap_every": "150000",
+  "resume": "False"
+ }
+}

@@ -21,7 +21,7 @@ from typing import Any
 
 import numpy as np
 
-from rl.common import evaluate_in_node, summarize_episodes
+from rl.common import save_json, evaluate_in_node, summarize_episodes
 from vision.bridge.policy import MlpPolicy
 from vision.bridge.runner import DEFAULT_BOTS, run_session
 from vision.calibration.analyze import analyze
@@ -117,7 +117,7 @@ def write_calibration(reports: list[dict], path: Path) -> None:
     out = {"tags": {t: {"mean": a["sum"] / a["n"], "n": a["n"]} for t, a in tags.items() if a["n"]}, "perFeature": per.round(5).tolist(), "names": feature_names(),
            "sessions": len(reports)}
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(out, indent=1, default=float))
+    save_json(path, out)
 
 
 def main() -> None:
@@ -177,7 +177,7 @@ def main() -> None:
     res["seconds"] = time.time() - t0
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(res, indent=1, default=float))
+    save_json(out, res)
     print(json.dumps({k: {kk: vv for kk, vv in v.items() if kk != "episodesDetail"} for k, v in res["conditions"].items()}, indent=1, default=float))
 
 

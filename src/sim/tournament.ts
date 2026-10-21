@@ -102,15 +102,15 @@ export function summarize(policies: string[], rounds: RoundResult[]): PolicySumm
       policy, entries: n,
       winRate: wilson(es.filter((e) => e.rank === 1).length, n),
       rank: meanCI(es.map((e) => e.rank)),
-      survivalS: meanCI(es.map((e) => e.survivalS)),
-      finalLength: meanCI(es.map((e) => e.finalLength)),
-      maxLength: meanCI(es.map((e) => e.maxLength)),
-      eaten: meanCI(es.map((e) => e.eaten)),
-      kills: meanCI(es.map((e) => e.kills)),
+      survivalS: meanCI(es.map((e) => e.survivalS), 0),
+      finalLength: meanCI(es.map((e) => e.finalLength), 0),
+      maxLength: meanCI(es.map((e) => e.maxLength), 0),
+      eaten: meanCI(es.map((e) => e.eaten), 0),
+      kills: meanCI(es.map((e) => e.kills), 0),
       deathRate: wilson(deaths.length, n),
       wallDeathRate: wilson(deaths.filter((e) => e.death === 'wall').length, n),
       collisionDeathRate: wilson(deaths.filter((e) => e.death !== 'wall').length, n),
-      boostShare: meanCI(boosted.map((e) => e.eaten / e.boostS)),
+      boostShare: meanCI(boosted.map((e) => e.eaten / e.boostS), 0),
     };
   });
 }

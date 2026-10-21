@@ -17,15 +17,15 @@ export function tQuantile(df: number): number {
   return 1.96;
 }
 
-/** Mean with a t-based 95 % confidence interval. */
-export function meanCI(xs: number[]): Interval {
+/** Mean with a t-based 95 % confidence interval (lo clamped to `floor`, e.g. 0 for counts and durations). */
+export function meanCI(xs: number[], floor = -Infinity): Interval {
   const n = xs.length;
   if (n === 0) return { mean: NaN, lo: NaN, hi: NaN, n };
   const mean = xs.reduce((a, b) => a + b, 0) / n;
   if (n === 1) return { mean, lo: mean, hi: mean, n };
   const sd = Math.sqrt(xs.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1));
   const h = tQuantile(n - 1) * sd / Math.sqrt(n);
-  return { mean, lo: mean - h, hi: mean + h, n };
+  return { mean, lo: Math.max(floor, mean - h), hi: mean + h, n };
 }
 
 /** Wilson score 95 % interval for a proportion k/n. */

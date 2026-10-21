@@ -119,6 +119,9 @@ def _period(profile: np.ndarray, lo: float, hi: float) -> tuple[float, float, fl
         p = k + (0.5 * (a - c) / den if den != 0 else 0.0)
     else:
         p = float(k)
+    # A degenerate parabola (flat peak) can throw the refinement far off: keep it next to the integer peak.
+    if not (k - 1 <= p <= k + 1):
+        p = float(k)
     k2 = int(round(2 * p))
     if k2 + 1 < len(ac) and ac[k2] > 0.3 * strength:
         a, b, c = ac[k2 - 1], ac[k2], ac[k2 + 1]
@@ -185,6 +188,21 @@ def estimate_floor_rect(wall_like: np.ndarray, sat: np.ndarray) -> tuple[float, 
     return edge(colf, True), edge(rowf, True), edge(colf, False), edge(rowf, False)
 
 
+# ------------------------------------------------------------------ colour classes
+def hue_classes(H: np.ndarray, ys: np.ndarray, xs: np.ndarray, h: int, w: int) -> tuple[np.ndarray, np.ndarray]:
+    """Assigns each given pixel to the nearest peak of their (circular) hue histogram; -1 elsewhere."""
+    hues = H[ys, xs]
+    hist = np.bincount(hues.astype(np.int32), minlength=180).astype(np.float64)
+    sm = np.convolve(np.concatenate([hist[-4:], hist, hist[:4]]), np.ones(5) / 5, mode="same")[4:-4]
+    peaks = [i for i in range(180) if sm[i] >= sm[i - 1] and sm[i] > sm[(i + 1) % 180] and sm[i] > max(30, 0.002 * hues.size)]
+    peaks = np.array(peaks if peaks else [int(np.argmax(sm))], dtype=np.float32)
+    dh = np.abs(hues[:, None] - peaks[None, :])
+    dh = np.minimum(dh, 180 - dh)
+    cls = np.full((h, w), -1, dtype=np.int32)
+    cls[ys, xs] = np.argmin(dh, axis=1)
+    return cls, peaks
+
+
 # ------------------------------------------------------------------ main
 def detect(rgb: np.ndarray, zoom_range: tuple[float, float] | None = None) -> Detections:
     t0 = time.perf_counter()
@@ -218,18 +236,10 @@ def detect(rgb: np.ndarray, zoom_range: tuple[float, float] | None = None) -> De
 
     # Hue classes: peaks of the hue histogram of saturated pixels (circular, 180 bins).
     ys, xs = np.nonzero(sat)
-    hues = H[ys, xs]
-    if hues.size < 50:
+    if ys.size < 50:
         det.reason = "no_snake_pixels"
         return det
-    hist = np.bincount(hues.astype(np.int32), minlength=180).astype(np.float64)
-    sm = np.convolve(np.concatenate([hist[-4:], hist, hist[:4]]), np.ones(5) / 5, mode="same")[4:-4]
-    peaks = [i for i in range(180) if sm[i] >= sm[i - 1] and sm[i] > sm[(i + 1) % 180] and sm[i] > max(30, 0.002 * hues.size)]
-    peaks = np.array(peaks if peaks else [int(np.argmax(sm))], dtype=np.float32)
-    dh = np.abs(hues[:, None] - peaks[None, :])
-    dh = np.minimum(dh, 180 - dh)
-    cls = np.full((h, w), -1, dtype=np.int32)
-    cls[ys, xs] = np.argmin(dh, axis=1)
+    cls, peaks = hue_classes(H, ys, xs, h, w)
     det.timings["hue"] = time.perf_counter() - t0
 
     # Components per hue class (inside the class bounding box); pellets vs bodies by size and roundness.

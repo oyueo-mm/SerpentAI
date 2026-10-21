@@ -14,6 +14,8 @@ from pathlib import Path
 
 import numpy as np
 
+from rl.common import save_json
+
 from vision.detection.classical import detect
 from vision.evaluate import evaluate_dir
 from vision.segmentation.cnn import CnnDetector, augment
@@ -53,7 +55,7 @@ def main() -> None:
                   f"pelletR {m['pelletRecall']['mean']:.2f} IoU self {rep['iou']['self']['mean']:.3f} other {rep['iou']['other']['mean']:.3f} "
                   f"rayMAE {rep['obsMAE']['rayBody']:.3f} foodMAE {rep['obsMAE']['foodSum']:.3f} {m['detectMs']['mean']:.0f}ms", flush=True)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out).write_text(json.dumps(rows, indent=1, default=float))
+    save_json(Path(args.out), rows)
 
 
 if __name__ == "__main__":

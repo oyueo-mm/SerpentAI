@@ -1,5 +1,9 @@
-"""Learned segmentation: a small U-Net (6 classes: floor, wall, self, other, pellet, eye) trained on the
-synthetic label renders, plugged into the same geometry stage as the classical detector.
+"""Learned segmentation: a small U-Net (5 classes: floor, wall, body, pellet, eye) trained on the synthetic
+label renders, plugged into the same geometry stage as the classical detector.
+
+Own body vs. other bodies is deliberately NOT a CNN class: both are arbitrary-coloured tubes and only global
+context (being the snake under the screen centre) tells them apart, which a small fully-convolutional net
+cannot see. The split is made afterwards exactly like the classical pipeline (hue class at the centre).
 
     python -m vision.segmentation.cnn train --data vision/datasets/train --val vision/datasets/val-rand --out vision/models/seg-v1.pt
     python -m vision.evaluate vision/datasets/val-shift --segmenter cnn
@@ -24,13 +28,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 from PIL import Image
 
-from vision.detection.classical import (Detections, Pellet, estimate_floor_rect, estimate_scale, neck_heading, pair_eyes, read_hud, zoom_prior,
-                                        HUD)
+from vision.detection.classical import (HUD, Detections, Pellet, estimate_floor_rect, estimate_scale, hue_classes, neck_heading, pair_eyes,
+                                        read_hud, zoom_prior)
 
-CLASSES = ["floor", "wall", "self", "other", "pellet", "eye"]
+CLASSES = ["floor", "wall", "body", "pellet", "eye"]
+#: Label-render ids (vision/datagen.py: floor, wall, self, other, pellet, eye) -> CNN classes.
+LABEL_TO_CNN = np.array([0, 1, 2, 2, 3, 4] + [255] * 250, dtype=np.uint8)
 IGNORE = 255
 # Class weights: rare classes (eyes, pellets) matter most for the observation.
-CLASS_W = th.tensor([0.3, 1.0, 1.0, 1.0, 3.0, 6.0])
+CLASS_W = th.tensor([0.3, 1.0, 1.0, 3.0, 6.0])
 
 
 def block(ci: int, co: int) -> nn.Sequential:
@@ -39,7 +45,7 @@ def block(ci: int, co: int) -> nn.Sequential:
 
 
 class TinyUNet(nn.Module):
-    def __init__(self, w: tuple[int, int, int, int] = (12, 24, 48, 64), n_cls: int = 6):
+    def __init__(self, w: tuple[int, int, int, int] = (12, 24, 48, 64), n_cls: int = 5):
         super().__init__()
         self.e1, self.e2, self.e3, self.e4 = block(3, w[0]), block(w[0], w[1]), block(w[1], w[2]), block(w[2], w[3])
         self.d3, self.d2, self.d1 = block(w[3] + w[2], w[2]), block(w[2] + w[1], w[1]), block(w[1] + w[0], w[0])
@@ -88,7 +94,7 @@ def list_samples(root: Path) -> list[Path]:
 
 def load_sample(p: Path) -> tuple[np.ndarray, np.ndarray]:
     img = np.asarray(Image.open(p.with_suffix(".png")).convert("RGB"))
-    lab = np.asarray(Image.open(p.with_name(p.stem + "_label.png")))
+    lab = LABEL_TO_CNN[np.asarray(Image.open(p.with_name(p.stem + "_label.png")))]
     return img, lab
 
 
@@ -100,7 +106,7 @@ def random_crop(img: np.ndarray, lab: np.ndarray, size: int, rng: random.Random)
     h, w = lab.shape
     # Bias crops towards rare classes (eyes, pellets) half of the time.
     if rng.random() < 0.5:
-        ys, xs = np.nonzero(lab == 5)
+        ys, xs = np.nonzero(lab == 4)
         if len(ys):
             k = rng.randrange(len(ys))
             cy, cx = ys[k], xs[k]
@@ -192,8 +198,7 @@ class CnnDetector:
         det.timings["cnn"] = time.perf_counter() - t0
         hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
         H, V = hsv[..., 0].astype(np.float32), hsv[..., 2].astype(np.float32)
-        wall = seg == 1
-        body = (seg == 2) | (seg == 3)
+        wall, body, pel, eye = seg == 1, seg == 2, seg == 3, seg == 4
         det.floor_rect = estimate_floor_rect(wall, np.zeros_like(wall))
         x0, y0, x1, y1 = det.floor_rect
         inside = np.zeros((h, w), bool)
@@ -203,20 +208,28 @@ class CnnDetector:
         if not np.isfinite(det.zoom):
             det.reason = "grid_not_found"
             return det
-        n, lab, stats, cents = cv2.connectedComponentsWithStats((seg == 4).astype(np.uint8), connectivity=8)
+        n, lab, stats, cents = cv2.connectedComponentsWithStats(pel.astype(np.uint8), connectivity=8)
         for i in range(1, n):
             det.pellets.append(Pellet(float(cents[i][0]), float(cents[i][1]), math.sqrt(stats[i, cv2.CC_STAT_AREA] / math.pi)))
         cx, cy = w / 2, h / 2
-        self_mask = seg == 2
-        if not self_mask[max(0, int(cy) - 4): int(cy) + 5, max(0, int(cx) - 4): int(cx) + 5].any():
+        # Own body = the body hue class under the screen centre (same rule as the classical pipeline).
+        ys, xs = np.nonzero(body)
+        if ys.size < 50:
+            det.reason = "no_snake_pixels"
+            return det
+        cls, _ = hue_classes(H, ys, xs, h, w)
+        win = cls[max(0, int(cy) - 4): int(cy) + 5, max(0, int(cx) - 4): int(cx) + 5]
+        vals = win[win >= 0]
+        if vals.size == 0:
             det.reason = "self_not_at_centre"
             return det
-        det.self_mask, det.obstacle = self_mask, seg == 3
-        dist = cv2.distanceTransform(body.astype(np.uint8), cv2.DIST_L2, 3)
-        n, lab, stats, cents = cv2.connectedComponentsWithStats((seg == 5).astype(np.uint8), connectivity=8)
+        self_mask = body & (cls == int(np.bincount(vals).argmax()))
+        det.self_mask, det.obstacle = self_mask, body & ~self_mask
+        full = body | eye
+        dist = cv2.distanceTransform(full.astype(np.uint8), cv2.DIST_L2, 3)
+        n, lab, stats, cents = cv2.connectedComponentsWithStats(eye.astype(np.uint8), connectivity=8)
         holes = [(float(cents[i][0]), float(cents[i][1]), math.sqrt(stats[i, cv2.CC_STAT_AREA] / math.pi)) for i in range(1, n) if stats[i, cv2.CC_STAT_AREA] >= 2]
-        cls = np.where(body, 0, -1).astype(np.int32)
-        heads = pair_eyes(holes, body | (seg == 5), cls, H, dist)
+        heads = pair_eyes(holes, full, cls, H, dist)
         own = [hd for hd in heads if math.hypot(hd.x - cx, hd.y - cy) < max(6.0, 1.2 * hd.radius_px)]
         if own:
             best = min(own, key=lambda hd: math.hypot(hd.x - cx, hd.y - cy))

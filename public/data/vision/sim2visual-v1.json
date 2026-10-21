@@ -1,0 +1,1077 @@
+{
+ "model": "ppo-dagger-v1",
+ "seeds": [
+  930000,
+  930001,
+  930002,
+  930003,
+  930004,
+  930005,
+  930006,
+  930007
+ ],
+ "bots": "greedy:2,survival:2,aggressive:2,potential:2,hybrid:2,mpc-lite:1",
+ "conditions": {
+  "E": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 77.775,
+    "lo": 52.23664449521292,
+    "hi": 103.3133555047871,
+    "n": 8
+   },
+   "deathRate": 0.75,
+   "maxLength": {
+    "mean": 1042.1488592685675,
+    "lo": 661.2640689544746,
+    "hi": 1423.0336495826605,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 801.0238592685675,
+    "lo": 419.72151773398815,
+    "hi": 1182.326200803147,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "n": 8
+   },
+   "episodesDetail": [
+    {
+     "seed": 930000,
+     "survivalS": 60.56666666666667,
+     "died": true,
+     "maxLength": 876.1125000000005,
+     "eaten": 636.1125000000005,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.695218322523681
+    },
+    {
+     "seed": 930001,
+     "survivalS": 96.06666666666666,
+     "died": true,
+     "maxLength": 1086.172413793104,
+     "eaten": 846.1724137931039,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.46513114364565
+    },
+    {
+     "seed": 930002,
+     "survivalS": 59.43333333333333,
+     "died": true,
+     "maxLength": 680,
+     "eaten": 440.0,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.76898174081401
+    },
+    {
+     "seed": 930003,
+     "survivalS": 120.0,
+     "died": false,
+     "maxLength": 1582.8284285714278,
+     "eaten": 1342.8284285714278,
+     "boostShare": 0.0,
+     "endReason": "max_seconds",
+     "controlHz": 9.716505517709917
+    },
+    {
+     "seed": 930004,
+     "survivalS": 101.1,
+     "died": true,
+     "maxLength": 978.2516746411482,
+     "eaten": 735.2516746411482,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.751650598709775
+    },
+    {
+     "seed": 930005,
+     "survivalS": 45.43333333333333,
+     "died": true,
+     "maxLength": 690.3999999999996,
+     "eaten": 444.39999999999964,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.74571961717313
+    },
+    {
+     "seed": 930006,
+     "survivalS": 120.0,
+     "died": false,
+     "maxLength": 2078.8830000000025,
+     "eaten": 1838.8830000000025,
+     "boostShare": 0.0,
+     "endReason": "max_seconds",
+     "controlHz": 9.745167185901249
+    },
+    {
+     "seed": 930007,
+     "survivalS": 19.6,
+     "died": true,
+     "maxLength": 364.5428571428572,
+     "eaten": 124.5428571428572,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.780724493992915
+    }
+   ],
+   "pairedVsA": {
+    "survivalS": {
+     "mean": -6.687500000000001,
+     "lo": -36.895290971223154,
+     "hi": 23.52029097122315,
+     "n": 8
+    },
+    "maxLength": {
+     "mean": -167.62470971366054,
+     "lo": -667.9229099862171,
+     "hi": 332.67349055889605,
+     "n": 8
+    }
+   }
+  },
+  "D": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 87.44166666666666,
+    "lo": 56.930153741215065,
+    "hi": 117.95317959211826,
+    "n": 8
+   },
+   "deathRate": 0.375,
+   "maxLength": {
+    "mean": 1280.0798969662642,
+    "lo": 841.1708361551882,
+    "hi": 1718.9889577773401,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 1038.9548969662642,
+    "lo": 600.203480833401,
+    "hi": 1477.7063130991273,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "n": 8
+   },
+   "episodesDetail": [
+    {
+     "seed": 930000,
+     "survivalS": 52.666666666666664,
+     "died": true,
+     "maxLength": 786.8126315789483,
+     "eaten": 546.8126315789483,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 7.822146917202406
+    },
+    {
+     "seed": 930001,
+     "survivalS": 120.0,
+     "died": false,
+     "maxLength": 1834.8808695652203,
+     "eaten": 1594.8808695652203,
+     "boostShare": 0.0,
+     "endReason": "max_steps",
+     "controlHz": 7.855869686474187
+    },
+    {
+     "seed": 930002,
+     "survivalS": 120.0,
+     "died": false,
+     "maxLength": 1598.6161863510135,
+     "eaten": 1358.6161863510135,
+     "boostShare": 0.0,
+     "endReason": "max_steps",
+     "controlHz": 7.572468372420276
+    },
+    {
+     "seed": 930003,
+     "survivalS": 15.766666666666667,
+     "died": true,
+     "maxLength": 410,
+     "eaten": 170.0,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 7.924327220242395
+    },
+    {
+     "seed": 930004,
+     "survivalS": 120.0,
+     "died": false,
+     "maxLength": 1418.9920000000002,
+     "eaten": 1175.9920000000002,
+     "boostShare": 0.0,
+     "endReason": "max_steps",
+     "controlHz": 8.336504181942525
+    },
+    {
+     "seed": 930005,
+     "survivalS": 112.3,
+     "died": false,
+     "maxLength": 1381.6040792540794,
+     "eaten": 1135.6040792540794,
+     "boostShare": 0.0,
+     "endReason": "game area / own snake not detected for 8 frames (grid_not_found)",
+     "controlHz": 8.420507027022111
+    },
+    {
+     "seed": 930006,
+     "survivalS": 38.8,
+     "died": true,
+     "maxLength": 587,
+     "eaten": 347.0,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 8.466447162324524
+    },
+    {
+     "seed": 930007,
+     "survivalS": 120.0,
+     "died": false,
+     "maxLength": 2222.733408980851,
+     "eaten": 1982.733408980851,
+     "boostShare": 0.0,
+     "endReason": "max_steps",
+     "controlHz": 8.48741450472488
+    }
+   ],
+   "pairedVsA": {
+    "survivalS": {
+     "mean": 2.9791666666666643,
+     "lo": -45.71578346878828,
+     "hi": 51.67411680212161,
+     "n": 8
+    },
+    "maxLength": {
+     "mean": 70.30632798403609,
+     "lo": -614.9206189003634,
+     "hi": 755.5332748684356,
+     "n": 8
+    }
+   }
+  },
+  "F": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 17.441666666666663,
+    "lo": 7.149483564914149,
+    "hi": 27.733849768419176,
+    "n": 8
+   },
+   "deathRate": 1.0,
+   "maxLength": {
+    "mean": 360.84510869565213,
+    "lo": 281.8375516559107,
+    "hi": 439.85266573539354,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 119.72010869565216,
+    "lo": 41.660272450593425,
+    "hi": 197.7799449407109,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "n": 8
+   },
+   "episodesDetail": [
+    {
+     "seed": 930000,
+     "survivalS": 16.966666666666665,
+     "died": true,
+     "maxLength": 347,
+     "eaten": 107.0,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.70051470261406
+    },
+    {
+     "seed": 930001,
+     "survivalS": 31.9,
+     "died": true,
+     "maxLength": 408,
+     "eaten": 168.0,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.8582149996318
+    },
+    {
+     "seed": 930002,
+     "survivalS": 13.266666666666667,
+     "died": true,
+     "maxLength": 310,
+     "eaten": 70.0,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.633037321443071
+    },
+    {
+     "seed": 930003,
+     "survivalS": 5.233333333333333,
+     "died": true,
+     "maxLength": 288,
+     "eaten": 48.0,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.363705090848795
+    },
+    {
+     "seed": 930004,
+     "survivalS": 1.5333333333333334,
+     "died": true,
+     "maxLength": 252,
+     "eaten": 9.0,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 8.898116367746242
+    },
+    {
+     "seed": 930005,
+     "survivalS": 44.53333333333333,
+     "died": true,
+     "maxLength": 599,
+     "eaten": 353.0,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.641210012926184
+    },
+    {
+     "seed": 930006,
+     "survivalS": 4.6,
+     "died": true,
+     "maxLength": 266,
+     "eaten": 26.0,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 8.925075984861516
+    },
+    {
+     "seed": 930007,
+     "survivalS": 21.5,
+     "died": true,
+     "maxLength": 416.7608695652173,
+     "eaten": 176.76086956521732,
+     "boostShare": 0.0,
+     "endReason": "game_over",
+     "controlHz": 9.7207275443618
+    }
+   ],
+   "pairedVsA": {
+    "survivalS": {
+     "mean": -67.02083333333334,
+     "lo": -108.04155311986995,
+     "hi": -26.00011354679674,
+     "n": 8
+    },
+    "maxLength": {
+     "mean": -848.9284602865758,
+     "lo": -1358.727447010874,
+     "hi": -339.1294735622777,
+     "n": 8
+    }
+   }
+  },
+  "A": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 84.4625,
+    "lo": 49.28531553770337,
+    "hi": 119.63968446229664,
+    "n": 8
+   },
+   "deathRate": 0.375,
+   "maxLength": {
+    "mean": 1209.773568982228,
+    "lo": 759.7645048220427,
+    "hi": 1659.7826331424133,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 977.0860689822282,
+    "lo": 523.8640457246354,
+    "hi": 1430.308092239821,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.0013541666666666667,
+    "lo": -0.0006447609972460508,
+    "hi": 0.0033530943305793842,
+    "n": 8
+   },
+   "episodesDetail": [
+    {
+     "seed": 930000,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1436.0526054590568,
+     "eaten": 1241.0526054590573,
+     "boostShare": 0.008333333333333333
+    },
+    {
+     "seed": 930001,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1302.5307936507913,
+     "eaten": 1062.5307936507943,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930002,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1908.9702400744422,
+     "eaten": 1673.4702400744418,
+     "boostShare": 0.0008333333333333334
+    },
+    {
+     "seed": 930003,
+     "survivalS": 53.1,
+     "died": true,
+     "maxLength": 796,
+     "eaten": 556,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930004,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1984.6349126735336,
+     "eaten": 1753.6349126735322,
+     "boostShare": 0.0016666666666666668
+    },
+    {
+     "seed": 930005,
+     "survivalS": 15.466666666666667,
+     "died": true,
+     "maxLength": 367,
+     "eaten": 127,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930006,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1565,
+     "eaten": 1325,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930007,
+     "survivalS": 7.133333333333334,
+     "died": true,
+     "maxLength": 318,
+     "eaten": 78,
+     "boostShare": 0.0
+    }
+   ]
+  },
+  "B": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 76.0375,
+    "lo": 42.393437621013845,
+    "hi": 109.68156237898614,
+    "n": 8
+   },
+   "deathRate": 0.5,
+   "maxLength": {
+    "mean": 1119.5251089822764,
+    "lo": 621.0620599300842,
+    "hi": 1617.9881580344686,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 883.4626089822759,
+    "lo": 384.0347878656024,
+    "hi": 1382.8904300989493,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.0012648809523809524,
+    "lo": -0.0002721221290155106,
+    "hi": 0.0028018840337774155,
+    "n": 8
+   },
+   "episodesDetail": [
+    {
+     "seed": 930000,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1354.1200000000003,
+     "eaten": 1118.6200000000003,
+     "boostShare": 0.0008333333333333334
+    },
+    {
+     "seed": 930001,
+     "survivalS": 32.86666666666667,
+     "died": true,
+     "maxLength": 418,
+     "eaten": 178,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930002,
+     "survivalS": 8.233333333333333,
+     "died": true,
+     "maxLength": 282,
+     "eaten": 42,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930003,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 2077.117052298458,
+     "eaten": 1837.1170522984576,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930004,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1810.2367752247758,
+     "eaten": 1570.2367752247749,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930005,
+     "survivalS": 33.5,
+     "died": true,
+     "maxLength": 457,
+     "eaten": 226,
+     "boostShare": 0.005952380952380952
+    },
+    {
+     "seed": 930006,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1773.607044334976,
+     "eaten": 1551.6070443349747,
+     "boostShare": 0.0033333333333333335
+    },
+    {
+     "seed": 930007,
+     "survivalS": 53.7,
+     "died": true,
+     "maxLength": 784.1200000000002,
+     "eaten": 544.12,
+     "boostShare": 0.0
+    }
+   ],
+   "pairedVsA": {
+    "survivalS": {
+     "mean": -8.425,
+     "lo": -51.05011268280967,
+     "hi": 34.200112682809674,
+     "n": 8
+    },
+    "maxLength": {
+     "mean": -90.24845999995169,
+     "lo": -693.8806131017903,
+     "hi": 513.3836931018869,
+     "n": 8
+    }
+   }
+  },
+  "C": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 90.2875,
+    "lo": 66.00123560986009,
+    "hi": 114.5737643901399,
+    "n": 8
+   },
+   "deathRate": 0.5,
+   "maxLength": {
+    "mean": 1181.7896959647132,
+    "lo": 887.5867935222356,
+    "hi": 1475.992598407191,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 946.6646959647134,
+    "lo": 654.0317172690327,
+    "hi": 1239.297674660394,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.001683874442011574,
+    "lo": -0.0010578762903243114,
+    "hi": 0.004425625174347459,
+    "n": 8
+   },
+   "episodesDetail": [
+    {
+     "seed": 930000,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1324.3875,
+     "eaten": 1084.3875,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930001,
+     "survivalS": 80.13333333333334,
+     "died": true,
+     "maxLength": 1005.2214285714285,
+     "eaten": 765.2214285714285,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930002,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1604.5666666666675,
+     "eaten": 1364.5666666666675,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930003,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1459.0242296151337,
+     "eaten": 1219.0242296151337,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930004,
+     "survivalS": 36.7,
+     "died": true,
+     "maxLength": 634,
+     "eaten": 394,
+     "boostShare": 0.0
+    },
+    {
+     "seed": 930005,
+     "survivalS": 79.66666666666667,
+     "died": true,
+     "maxLength": 1044.6648275862062,
+     "eaten": 839.1648275862063,
+     "boostShare": 0.011292346298619825
+    },
+    {
+     "seed": 930006,
+     "survivalS": 45.8,
+     "died": true,
+     "maxLength": 627.5,
+     "eaten": 392,
+     "boostShare": 0.002178649237472767
+    },
+    {
+     "seed": 930007,
+     "survivalS": 120,
+     "died": false,
+     "maxLength": 1754.9529152782698,
+     "eaten": 1514.9529152782704,
+     "boostShare": 0.0
+    }
+   ],
+   "pairedVsA": {
+    "survivalS": {
+     "mean": 5.825000000000001,
+     "lo": -43.24395087640564,
+     "hi": 54.89395087640565,
+     "n": 8
+    },
+    "maxLength": {
+     "mean": -27.98387301751478,
+     "lo": -661.6931300119566,
+     "hi": 605.7253839769271,
+     "n": 8
+    }
+   }
+  }
+ },
+ "measured": {
+  "E": {
+   "headingErrDeg": 2.931354135340795,
+   "zoomRelErr": 0.0005052999452407691,
+   "lengthRelErr": 0.009715528585231635,
+   "oppPosErrU": 3.386833103423969,
+   "obsMAE": {
+    "self": 0.0013756504049524665,
+    "rayBody": 0.0030453426370513625,
+    "rayWall": 0.004578987427521497,
+    "foodSum": 0.027368482667952776,
+    "foodNear": 0.03110068989917636,
+    "opponents": 0.014085816452279687
+   },
+   "actionAgreement": 0.6542968752382184,
+   "latencyMs": {
+    "sendToPage": 11.42755126953125,
+    "pageToApplied": 32.425048828125,
+    "sendToDrawn": 39.31524658203125
+   },
+   "timingMs": {
+    "captureMs": 35.77881045125062,
+    "detectMs": 39.3338088549165,
+    "policyMs": 2.195903378054375,
+    "inputMs": 11.732458668173946,
+    "stepMs": 89.00169852343946
+   },
+   "displayLagMs": 16.516891479492188,
+   "controlHz": 9.70863732755879
+  },
+  "D": {
+   "headingErrDeg": 0.7515251386203021,
+   "zoomRelErr": 0.0005170867662512859,
+   "lengthRelErr": 0.010582371082565127,
+   "oppPosErrU": 1.0236860641684857,
+   "obsMAE": {
+    "self": 0.001383795271976851,
+    "rayBody": 0.0015917107666609809,
+    "rayWall": 0.001171641569271742,
+    "foodSum": 0.01735712809022516,
+    "foodNear": 0.012055229162797332,
+    "opponents": 0.01340775109565584
+   },
+   "actionAgreement": 0.588206170439274,
+   "latencyMs": {
+    "sendToPage": null,
+    "pageToApplied": null,
+    "sendToDrawn": null
+   },
+   "timingMs": {
+    "captureMs": 34.83284108267861,
+    "detectMs": 37.432375408667895,
+    "policyMs": 2.006852508837588,
+    "inputMs": 10.91000100564142,
+    "stepMs": 85.17762631155139
+   },
+   "displayLagMs": 4.6301422119140625,
+   "controlHz": 8.110710634044162
+  },
+  "F": {
+   "headingErrDeg": 3.155690389642171,
+   "zoomRelErr": 0.00038994696626515573,
+   "lengthRelErr": 0.007443999291092429,
+   "oppPosErrU": 4.310457626841304,
+   "obsMAE": {
+    "self": 0.002337133453693241,
+    "rayBody": 0.008392134244786575,
+    "rayWall": 0.002948355278931558,
+    "foodSum": 0.02605611947365105,
+    "foodNear": 0.031892224913462996,
+    "opponents": 0.03144844574853778
+   },
+   "actionAgreement": 0.6521223372350649,
+   "latencyMs": {
+    "sendToPage": 10.1300048828125,
+    "pageToApplied": 30.30633544921875,
+    "sendToDrawn": 37.47235107421875
+   },
+   "timingMs": {
+    "captureMs": 33.96338087825376,
+    "detectMs": 39.08504271637267,
+    "policyMs": 2.071525009505357,
+    "inputMs": 10.421422147814587,
+    "stepMs": 85.33439931662765
+   },
+   "displayLagMs": 19.029159545898438,
+   "controlHz": 9.467575253054182
+  }
+ },
+ "derived": {
+  "delayTicks": 4,
+  "delayMs": 137.94363883105666,
+  "obsNoiseSigma": 0.020097974825656943
+ },
+ "latencySweep": {
+  "0": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 84.4625,
+    "lo": 49.28531553770337,
+    "hi": 119.63968446229664,
+    "n": 8
+   },
+   "deathRate": 0.375,
+   "maxLength": {
+    "mean": 1209.773568982228,
+    "lo": 759.7645048220427,
+    "hi": 1659.7826331424133,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 977.0860689822282,
+    "lo": 523.8640457246354,
+    "hi": 1430.308092239821,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.0013541666666666667,
+    "lo": -0.0006447609972460508,
+    "hi": 0.0033530943305793842,
+    "n": 8
+   }
+  },
+  "3": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 99.225,
+    "lo": 79.96739836959037,
+    "hi": 118.48260163040962,
+    "n": 8
+   },
+   "deathRate": 0.5,
+   "maxLength": {
+    "mean": 1345.6902537556539,
+    "lo": 1024.903716714684,
+    "hi": 1666.4767907966238,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 1113.002753755653,
+    "lo": 790.1503474526161,
+    "hi": 1435.8551600586898,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.0017622807344425807,
+    "lo": 9.722592671997988e-05,
+    "hi": 0.0034273355421651818,
+    "n": 8
+   }
+  },
+  "6": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 84.94583333333333,
+    "lo": 50.778936172728685,
+    "hi": 119.11273049393796,
+    "n": 8
+   },
+   "deathRate": 0.375,
+   "maxLength": {
+    "mean": 1273.9095132123457,
+    "lo": 762.7406323116934,
+    "hi": 1785.078394112998,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 1039.2220132123457,
+    "lo": 528.4991703559355,
+    "hi": 1549.944856068756,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.0032423573048573047,
+    "lo": 0.00029983745178309255,
+    "hi": 0.006184877157931517,
+    "n": 8
+   }
+  },
+  "9": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 62.8375,
+    "lo": 34.78348795923597,
+    "hi": 90.89151204076403,
+    "n": 8
+   },
+   "deathRate": 1.0,
+   "maxLength": {
+    "mean": 923.2622665041772,
+    "lo": 566.0175257482927,
+    "hi": 1280.5070072600618,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 684.3872665041775,
+    "lo": 326.24102641522353,
+    "hi": 1042.5335065931315,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.0002631578947368421,
+    "lo": -0.00025263157894736836,
+    "hi": 0.0007789473684210526,
+    "n": 8
+   }
+  },
+  "12": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 50.22083333333333,
+    "lo": 21.49560437137958,
+    "hi": 78.94606229528708,
+    "n": 8
+   },
+   "deathRate": 0.875,
+   "maxLength": {
+    "mean": 700.277407166984,
+    "lo": 339.2237094046563,
+    "hi": 1061.3311049293116,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 461.4024071669837,
+    "lo": 98.3826685022093,
+    "hi": 824.4221458317581,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.006458333333333333,
+    "lo": -0.005740030058714162,
+    "hi": 0.01865669672538083,
+    "n": 8
+   }
+  }
+ },
+ "noiseSweep": {
+  "0.00": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 84.4625,
+    "lo": 49.28531553770337,
+    "hi": 119.63968446229664,
+    "n": 8
+   },
+   "deathRate": 0.375,
+   "maxLength": {
+    "mean": 1209.773568982228,
+    "lo": 759.7645048220427,
+    "hi": 1659.7826331424133,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 977.0860689822282,
+    "lo": 523.8640457246354,
+    "hi": 1430.308092239821,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.0013541666666666667,
+    "lo": -0.0006447609972460508,
+    "hi": 0.0033530943305793842,
+    "n": 8
+   }
+  },
+  "0.02": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 104.27083333333333,
+    "lo": 83.06356160286315,
+    "hi": 125.47810506380351,
+    "n": 8
+   },
+   "deathRate": 0.375,
+   "maxLength": {
+    "mean": 1419.222387971474,
+    "lo": 1115.2298111803002,
+    "hi": 1723.214964762648,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 1180.3473879714743,
+    "lo": 875.3449141203296,
+    "hi": 1485.349861822619,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.00020833333333333335,
+    "lo": -0.0002,
+    "hi": 0.0006166666666666667,
+    "n": 8
+   }
+  },
+  "0.05": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 92.81666666666666,
+    "lo": 62.8405746228024,
+    "hi": 122.79275871053093,
+    "n": 8
+   },
+   "deathRate": 0.5,
+   "maxLength": {
+    "mean": 1282.0703869092085,
+    "lo": 886.7416093989066,
+    "hi": 1677.3991644195105,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 1057.8203869092085,
+    "lo": 658.4963145974534,
+    "hi": 1457.1444592209637,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.003361023109534853,
+    "lo": 0.0007293478106367738,
+    "hi": 0.005992698408432932,
+    "n": 8
+   }
+  },
+  "0.10": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 67.4625,
+    "lo": 38.21538750387296,
+    "hi": 96.70961249612705,
+    "n": 8
+   },
+   "deathRate": 0.75,
+   "maxLength": {
+    "mean": 822.0462539254872,
+    "lo": 563.5922372425598,
+    "hi": 1080.5002706084147,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 620.233753925487,
+    "lo": 347.8585269078179,
+    "hi": 892.6089809431561,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.014290212292920712,
+    "lo": 0.010353557887589245,
+    "hi": 0.01822686669825218,
+    "n": 8
+   }
+  },
+  "0.20": {
+   "episodes": 8,
+   "survivalS": {
+    "mean": 48.775000000000006,
+    "lo": 17.168567474325748,
+    "hi": 80.38143252567426,
+    "n": 8
+   },
+   "deathRate": 0.75,
+   "maxLength": {
+    "mean": 553.8514924542824,
+    "lo": 304.2763220067602,
+    "hi": 803.4266629018045,
+    "n": 8
+   },
+   "eaten": {
+    "mean": 419.35149245428244,
+    "lo": 94.65743794377101,
+    "hi": 744.0455469647939,
+    "n": 8
+   },
+   "boostShare": {
+    "mean": 0.05025533471883631,
+    "lo": 0.04206067679345914,
+    "hi": 0.05844999264421348,
+    "n": 8
+   }
+  }
+ },
+ "seconds": 2237.0836856365204
+}

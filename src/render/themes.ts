@@ -27,6 +27,9 @@ export const SHIFT_THEME: Theme = {
   shadow: true,
 };
 
+/** Diagnostic variant: the shifted colours with physical body thickness and no shadow. */
+export const SHIFT_THIN_THEME: Theme = { ...SHIFT_THEME, thickness: 1, shadow: false };
+
 export function randomTheme(seed: number): Theme {
   const r = new Rng(seed);
   const bgL = r.range(0.93, 0.99), bgH = r.range(0, 360), bgS = r.range(0, 0.35);
@@ -48,6 +51,7 @@ export function randomTheme(seed: number): Theme {
 export function themeFromParam(p: string | null): Theme {
   if (!p || p === 'default') return DEFAULT_THEME;
   if (p === 'shift') return SHIFT_THEME;
+  if (p === 'shift-thin') return SHIFT_THIN_THEME;
   const m = /^rand:(\d+)$/.exec(p);
   if (m) return randomTheme(Number(m[1]));
   return DEFAULT_THEME;

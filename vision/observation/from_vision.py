@@ -14,7 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
-from vision.detection.classical import Detections, length_from_gauge
+from vision.detection.classical import Detections, length_from_gauge, zoom_prior
 from vision.observation.encode import (FOOD_RANGE, FOOD_SECTORS, OPP_K, OPP_RANGE, RAY_COUNT, RAY_RANGE, RULES, Opponent, Sensors,
                                        encode_obs, radius_for, ray_angle, sector_of)
 from vision.tracking.tracker import Odometry, Tracker
@@ -76,6 +76,19 @@ def wall_distances(rect: tuple[float, float, float, float], cx: float, cy: float
     return out
 
 
+def opponent_speed(tr, heading: float) -> float:
+    """Physics-constrained speed: snakes move only along their heading, at cruise or boost speed.
+
+    |v| of a noisy tracked velocity is biased upward (head-position noise of a few u over ~0.1 s
+    frames adds tens of u/s), which made cruising opponents look boosted (sim2visual-v1). The
+    velocity is projected on the eye-detected heading and classified as cruise or boost.
+    """
+    if tr is None or tr.hits < 3:
+        return RULES["baseSpeed"]
+    v_par = float(tr.x[2] * math.cos(heading) + tr.x[3] * math.sin(heading))
+    return RULES["boostSpeed"] if v_par > 0.5 * (RULES["baseSpeed"] + RULES["boostSpeed"]) else RULES["baseSpeed"]
+
+
 @dataclass
 class VisionObserver:
     """Stateful frame-to-observation converter (zoom smoothing, odometry, opponent tracking)."""
@@ -98,6 +111,10 @@ class VisionObserver:
         else:
             a = self.zoom_alpha * max(0.2, det.zoom_conf)
             self.zoom = (1 - a) * self.zoom + a * det.zoom
+        lo, hi = zoom_prior(det.width, det.height)
+        if not (lo <= self.zoom <= hi):  # the game camera cannot produce this scale: distrust the estimate
+            self.zoom = min(hi, max(lo, self.zoom))
+            info["zoomClamped"] = True
         zoom = self.zoom
         cx, cy = det.width / 2, det.height / 2
         heading = float(det.self_heading)
@@ -141,8 +158,7 @@ class VisionObserver:
             if d >= OPP_RANGE:
                 continue
             rel = math.atan2(math.sin(hd.heading - heading), math.cos(hd.heading - heading))
-            spd = tr.speed if tr is not None and tr.hits >= 3 else RULES["baseSpeed"]
-            spd = min(max(spd, 0.6 * RULES["baseSpeed"]), 1.2 * RULES["boostSpeed"])
+            spd = opponent_speed(tr, hd.heading)
             opps.append((d, Opponent(dx * fx + dy * fy, dx * rx + dy * ry, rel, spd, hd.radius_px / zoom)))
         opps.sort(key=lambda p: p[0])
 

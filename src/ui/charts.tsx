@@ -117,6 +117,13 @@ export function CiBars({ rows, unit = '', digits = 1, max }: { rows: { label: st
   );
 }
 
+/** Direct end-of-line labels pushed apart vertically so they never overlap (≥ 12 px). */
+function endLabels(ls: { label: string; x: number; y: number }[]): { label: string; x: number; y: number }[] {
+  const out = [...ls].sort((a, b) => a.y - b.y);
+  for (let i = 1; i < out.length; i++) if (out[i].y - out[i - 1].y < 12) out[i] = { ...out[i], y: out[i - 1].y + 12 };
+  return out;
+}
+
 /** Multi-series line chart with a crosshair tooltip. */
 export function Lines({ series, xLabel, yLabel, height = 220 }: { series: { label: string; points: [number, number][] }[]; xLabel: string; yLabel: string; height?: number }) {
   const [hx, setHx] = useState<number | null>(null);
@@ -137,14 +144,14 @@ export function Lines({ series, xLabel, yLabel, height = 220 }: { series: { labe
         onMouseMove={(e) => { const r = (e.currentTarget as SVGSVGElement).getBoundingClientRect(); const px = ((e.clientX - r.left) / r.width) * W; setHx(x0 + ((px - L) / (W - L - R)) * (x1 - x0)); }}
         onMouseLeave={() => setHx(null)}>
         {ticks.map((v) => <g key={v}><line x1={L} x2={W - R} y1={Y(v)} y2={Y(v)} stroke={INK.grid} /><text x={L - 6} y={Y(v) + 3} fontSize={10} fill={INK.muted} textAnchor="end">{fmt(v, Math.abs(yMax) < 10 ? 1 : 0)}</text></g>)}
-        {xt.map((v) => <text key={v} x={X(v)} y={height - 12} fontSize={10} fill={INK.muted} textAnchor="middle">{v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(0)}k` : fmt(v, 0)}</text>)}
+        {xt.map((v) => <text key={v} x={X(v)} y={height - 12} fontSize={10} fill={INK.muted} textAnchor="middle">{v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(0)}k` : fmt(v, x1 - x0 < 2 ? 2 : x1 - x0 < 20 ? 1 : 0)}</text>)}
         <text x={W - R} y={height - 1} fontSize={10} fill={INK.muted} textAnchor="end">{xLabel}</text>
         <line x1={L} x2={W - R} y1={Y(yMin)} y2={Y(yMin)} stroke={INK.axis} />
         {series.map((s, i) => (
-          <g key={s.label}>
-            <polyline fill="none" stroke={SERIES[i % SERIES.length]} strokeWidth={2} strokeLinejoin="round" points={s.points.map((p) => `${X(p[0])},${Y(p[1])}`).join(' ')} />
-            {s.points.length > 0 && <text x={X(s.points[s.points.length - 1][0]) + 6} y={Y(s.points[s.points.length - 1][1]) + 4} fontSize={10} fill={INK.secondary}>{s.label}</text>}
-          </g>
+          <polyline key={s.label} fill="none" stroke={SERIES[i % SERIES.length]} strokeWidth={2} strokeLinejoin="round" points={s.points.map((p) => `${X(p[0])},${Y(p[1])}`).join(' ')} />
+        ))}
+        {endLabels(series.filter((s) => s.points.length > 0).map((s) => ({ label: s.label, x: X(s.points[s.points.length - 1][0]) + 6, y: Y(s.points[s.points.length - 1][1]) + 4 }))).map((l) => (
+          <text key={l.label} x={l.x} y={l.y} fontSize={10} fill={INK.secondary}>{l.label}</text>
         ))}
         {hx !== null && hx >= x0 && hx <= x1 && (
           <g>

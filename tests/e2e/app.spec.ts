@@ -115,6 +115,20 @@ test('analysis pages load without errors', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('analysis pages render the shipped result data (no "missing data" placeholders)', async ({ page }) => {
+  await page.goto('./#tournament');
+  await expect(page.getByTestId('tournament-summary')).toBeVisible();
+  await page.goto('./#calibration');
+  await expect(page.getByTestId('s2v-survival')).toBeVisible();
+  for (const mode of ['lab', 'vision', 'calibration']) {
+    await page.goto(`./#${mode}`);
+    await page.waitForTimeout(800);
+    await expect(page.getByText('측정 데이터 없음')).toHaveCount(0);
+  }
+  await page.goto('./#vision');
+  await expect(page.getByTestId('studio')).toBeVisible();
+});
+
 test('vision target page: canvas only, HUD drawn, ground-truth channel only with gt=1', async ({ page }) => {
   await page.goto('./?view=target&seed=5');
   await expect(page.getByTestId('vision-target')).toBeVisible();
