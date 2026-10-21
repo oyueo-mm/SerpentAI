@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', Roboto, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* Speed slider: thin track, large thumb; a bigger touch target on coarse pointers and in the sheet. */
+.speed-range {
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+}
+.speed-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #99f6e4, #0284c7);
+}
+.speed-range::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #99f6e4, #0284c7);
+}
+.speed-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid #0284c7;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.25);
+}
+.speed-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid #0284c7;
+}
+.speed-range:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.speed-range-lg {
+  height: 44px;
+}
+.speed-range-lg::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+  margin-top: -12px;
+}
+.speed-range-lg::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+}
+@media (pointer: coarse) {
+  .speed-range { height: 44px; }
+  .speed-range::-webkit-slider-thumb { width: 28px; height: 28px; margin-top: -12px; }
+}
+
+/* Inline slider on wide fine-pointer screens; a compact chip + sheet elsewhere. */
+.speed-inline { display: none; }
+.speed-chip { display: flex; }
+@media (min-width: 900px) and (pointer: fine) {
+  .speed-inline { display: flex; }
+  .speed-chip { display: none; }
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 1px;
+}
