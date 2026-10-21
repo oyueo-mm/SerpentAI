@@ -24,6 +24,8 @@ export function useSimulation(onGroundTruth?: (gt: GroundTruth[]) => void) {
   const frame = useRef<Frame | null>(null);
   const prevFrame = useRef<{ frame: Frame; at: number } | null>(null);
   const frameAt = useRef(0);
+  /** Smoothed real time between consecutive ticks arriving (ms), used as the interpolation span. */
+  const tickInterval = useRef(1000 / 30);
   const savedResolve = useRef<((s: MatchJSON) => void) | null>(null);
   const [ui, setUi] = useState<SimUi>({ stats: { ups: 0, actualSpeed: 0, tickMs: 0, running: false }, leaders: [], records: [], tick: 0, time: 0, ended: false, error: null });
   const lastUi = useRef(0);
@@ -36,12 +38,22 @@ export function useSimulation(onGroundTruth?: (gt: GroundTruth[]) => void) {
     w.onmessage = (e: MessageEvent<FromWorker>) => {
       const m = e.data;
       if (m.type === 'frame') {
-        if (frame.current) prevFrame.current = { frame: frame.current, at: frameAt.current };
+        const now = performance.now();
+        const cur = frame.current;
+        if (cur && m.frame.tick !== cur.tick) {
+          // A new tick: the old one becomes the interpolation start. Re-sent frames of the same tick
+          // (stats refresh, debug toggles) must not reset the interpolation (that caused the stutter).
+          prevFrame.current = { frame: cur, at: frameAt.current };
+          const gap = now - frameAt.current;
+          if (gap > 0 && gap < 250) tickInterval.current = tickInterval.current * 0.8 + gap * 0.2;
+          frameAt.current = now;
+        } else if (!cur || m.frame.tick < cur.tick) {
+          prevFrame.current = null;
+          frameAt.current = now;
+        }
         frame.current = m.frame;
-        frameAt.current = performance.now();
         w.postMessage({ type: 'ack' } satisfies ToWorker);
         if (m.gt?.length) gtSink.current?.(m.gt);
-        const now = performance.now();
         if (now - lastUi.current > 200 || m.frame.ended) {
           lastUi.current = now;
           setUi((u) => ({ ...u, stats: m.stats, leaders: m.leaders, records: m.records, tick: m.frame.tick, time: m.frame.time, ended: m.frame.ended }));
@@ -65,7 +77,7 @@ export function useSimulation(onGroundTruth?: (gt: GroundTruth[]) => void) {
         setUi((u) => ({ ...u, error: null }));
         send({ type: 'init', config, models, focusId, running, groundTruth });
       },
-      load: (snapshot: MatchJSON, models: MlpModelFile[], focusId: number) => send({ type: 'load', snapshot, models, focusId }),
+      load: (snapshot: MatchJSON, models: MlpModelFile[], focusId: number) => { frame.current = null; prevFrame.current = null; send({ type: 'load', snapshot, models, focusId }); },
       setRunning: (running: boolean) => send({ type: 'running', running }),
       setSpeed: (speed: number) => send({ type: 'speed', speed }),
       step: (ticks = 1) => send({ type: 'step', ticks }),
@@ -76,7 +88,7 @@ export function useSimulation(onGroundTruth?: (gt: GroundTruth[]) => void) {
     };
   }, []);
 
-  return { api, ui, frame, prevFrame, frameAt };
+  return { api, ui, frame, prevFrame, frameAt, tickInterval };
 }
 
 export type Simulation = ReturnType<typeof useSimulation>;

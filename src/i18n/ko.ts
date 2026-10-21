@@ -29,6 +29,17 @@ export const ko = {
     overview: '전체 보기',
     follow: '추적',
   },
+  camera: {
+    label: '카메라',
+    modes: { follow: '추적', free: '자유', overview: '전체' } as Record<'follow' | 'free' | 'overview', string>,
+    tips: {
+      follow: '지렁이 추적 (F) — 휠로 확대·축소',
+      free: '자유 카메라 — 우클릭/휠 클릭 드래그로 이동, 휠로 확대·축소, F로 추적 복귀',
+      overview: '전체 지도',
+    } as Record<'follow' | 'free' | 'overview', string>,
+    freeHint: '자유 카메라 · 우클릭 드래그 이동 · 휠 확대 · F 추적 복귀 (모바일: 끌기·두 손가락 확대)',
+    overviewHint: '전체 지도 · 휠로 확대하면 자유 카메라 · F 추적 복귀',
+  },
   speed: {
     label: '속도',
     aria: '시뮬레이션 속도 (로그 스케일)',
@@ -56,6 +67,7 @@ export const ko = {
     keys: '← → 또는 A D: 회전 · Space 또는 마우스 버튼: 부스트',
     touch: '왼쪽 조이스틱: 방향 · 오른쪽 버튼: 부스트',
     pause: 'P: 일시정지 · . : 한 틱 진행',
+    camera: '우클릭/휠 클릭 드래그: 카메라 이동 · 휠: 확대·축소 · F: 추적 복귀',
   },
   settings: {
     title: '경기 설정',
@@ -81,6 +93,7 @@ export const ko = {
     danger: 'AI 광선 위험도',
     predictions: 'AI 예측 경로·목표',
     trail: '실제 이동 경로',
+    perception: 'AI 시야 (360° 감지 범위)',
   },
   inspector: {
     title: '관전 대상',

@@ -22,6 +22,10 @@ let lastTickMs = 0;
 let groundTruth = false;
 let humanSeq = 0;
 let gtBuffer: GroundTruth[] = [];
+/** Frames are only sent when the tick advanced, on explicit events, or every 250 ms (stats while paused). */
+let lastSentTick = -1;
+let lastSentAt = 0;
+let forceFrame = true;
 
 /** Exact state around the focus after a tick (only with ?gt=1). */
 function captureGroundTruth(m: Match, appliedSeq: number): GroundTruth {
@@ -53,6 +57,11 @@ function modelsFrom(files: MlpModelFile[]): ModelStore {
 function sendFrame(): void {
   if (!match || awaitingAck) return;
   const m = match;
+  const now = performance.now();
+  if (!forceFrame && m.tick === lastSentTick && now - lastSentAt < 250) return;
+  forceFrame = false;
+  lastSentTick = m.tick;
+  lastSentAt = now;
   const frame = buildFrame(m, focusId, { debug, trail });
   const leaders: LeaderRow[] = m.world.snakes
     .map((s) => ({ id: s.id, label: s.label, policy: m.agents[s.id].spec.policy, length: s.length, alive: s.alive, kills: m.agents[s.id].record.kills }))
@@ -121,6 +130,7 @@ self.onmessage = (e: MessageEvent<ToWorker>) => {
         trail.length = 0;
         pacer.reset(performance.now());
         awaitingAck = false;
+        forceFrame = true;
         sendFrame();
         break;
       case 'load':
@@ -128,6 +138,7 @@ self.onmessage = (e: MessageEvent<ToWorker>) => {
         focusId = m.focusId;
         trail.length = 0;
         awaitingAck = false;
+        forceFrame = true;
         sendFrame();
         break;
       case 'running':
@@ -142,6 +153,7 @@ self.onmessage = (e: MessageEvent<ToWorker>) => {
         running = false;
         tick(Math.max(1, Math.min(300, m.ticks ?? 1)));
         awaitingAck = false;
+        forceFrame = true;
         sendFrame();
         break;
       case 'human':
@@ -150,10 +162,12 @@ self.onmessage = (e: MessageEvent<ToWorker>) => {
         break;
       case 'focus':
         focusId = m.id;
+        forceFrame = true;
         trail.length = 0;
         break;
       case 'debug':
         debug = m.enabled;
+        forceFrame = true;
         break;
       case 'save':
         if (match) post({ type: 'saved', snapshot: match.toJSON() });

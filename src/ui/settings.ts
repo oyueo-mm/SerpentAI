@@ -21,10 +21,9 @@ export interface UiSettings {
   labels: boolean;
   rightOpen: boolean;
   settingsOpen: boolean;
-  overview: boolean;
 }
 
-export const DEFAULT_UI: UiSettings = { speed: 1, debug: { ...NO_DEBUG }, labels: true, rightOpen: false, settingsOpen: false, overview: false };
+export const DEFAULT_UI: UiSettings = { speed: 1, debug: { ...NO_DEBUG }, labels: true, rightOpen: false, settingsOpen: false };
 
 export function defaultArena(mode: 'play' | 'watch', learned: string[] = []): ArenaSettings {
   const bots: Record<string, number> = { random: 1, greedy: 2, survival: 2, aggressive: 2, potential: 2, hybrid: 2, mpc: 2 };

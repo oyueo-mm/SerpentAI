@@ -129,6 +129,74 @@ test('analysis pages render the shipped result data (no "missing data" placehold
   await expect(page.getByTestId('studio')).toBeVisible();
 });
 
+test('camera: right-drag frees the camera, wheel zooms, F returns to follow; the simulation is untouched', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'mouse camera controls (touch is tested separately)');
+  const errors = trackErrors(page);
+  await page.goto('./#watch');
+  const root = page.locator('[data-testid=page-watch]');
+  const canvas = root.getByTestId('game-canvas');
+  await expect(canvas).toBeVisible();
+  await page.waitForTimeout(1200);
+  await root.getByTestId('play-pause').click();          // freeze the match
+  if (!(await root.getByTestId('analysis-panel').isVisible())) await root.getByTestId('toggle-analysis').click();
+  await expect(root.getByTestId('mpc-table')).toBeVisible({ timeout: 10000 });
+  const time0 = await root.getByTestId('sim-time').innerText();
+  const table0 = await root.getByTestId('mpc-table').innerText();
+  const box = (await canvas.boundingBox())!;
+  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.move(cx - 120, cy - 60, { steps: 6 });
+  await page.mouse.up({ button: 'right' });
+  await expect(root.getByTestId('camera-free')).toHaveAttribute('aria-checked', 'true');
+  await expect(root.getByTestId('camera-hint')).toBeVisible();
+  const shotFree = await canvas.screenshot();
+  await page.mouse.wheel(0, -400);
+  await page.waitForTimeout(300);
+  expect((await canvas.screenshot()).equals(shotFree)).toBe(false);   // the view zoomed
+  await root.getByTestId('camera-overview').click();
+  await expect(root.getByTestId('camera-overview')).toHaveAttribute('aria-checked', 'true');
+  await page.keyboard.press('KeyF');
+  await expect(root.getByTestId('camera-follow')).toHaveAttribute('aria-checked', 'true');
+  // Camera input changed nothing in the paused match: same time, same MPC evaluation.
+  expect(await root.getByTestId('sim-time').innerText()).toBe(time0);
+  expect(await root.getByTestId('mpc-table').innerText()).toBe(table0);
+  expect(errors).toEqual([]);
+});
+
+test('camera: touch drag pans on phones without selecting', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'touch gesture');
+  await page.goto('./#watch');
+  const canvas = page.locator('[data-testid=page-watch] [data-testid=game-canvas]');
+  await expect(canvas).toBeVisible();
+  await page.waitForTimeout(1000);
+  await canvas.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const at = (type: string, x: number, y: number) => el.dispatchEvent(new PointerEvent(type, { pointerId: 7, pointerType: 'touch', clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+    at('pointerdown', 150, 200);
+    for (let k = 1; k <= 6; k++) at('pointermove', 150 - 15 * k, 200 - 10 * k);
+    window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 7, pointerType: 'touch', bubbles: true }));
+  });
+  await expect(page.locator('[data-testid=page-watch] [data-testid=camera-free]')).toHaveAttribute('aria-checked', 'true');
+});
+
+test('vision target page keeps the fixed follow camera (no camera input)', async ({ page }) => {
+  await page.goto('./?view=target&seed=5&gt=1&autostart=0');
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __serpentGT?: { draws: unknown[] } }).__serpentGT?.draws.length ?? 0)).toBeGreaterThan(0);
+  const cam = () => page.evaluate(() => { const d = (window as unknown as { __serpentGT: { draws: { cam: { cx: number; cy: number; zoom: number } }[] } }).__serpentGT.draws; return d[d.length - 1].cam; });
+  const before = await cam();
+  await expect(page.getByTestId('camera-mode')).toHaveCount(0);
+  const box = (await page.locator('canvas').boundingBox())!;
+  await page.mouse.move(box.x + 200, box.y + 200);
+  await page.mouse.wheel(0, -600);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.move(box.x + 50, box.y + 50, { steps: 5 });
+  await page.mouse.up({ button: 'right' });
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(300);
+  expect(await cam()).toEqual(before);   // paused game, untouched camera
+});
+
 test('vision target page: canvas only, HUD drawn, ground-truth channel only with gt=1', async ({ page }) => {
   await page.goto('./?view=target&seed=5');
   await expect(page.getByTestId('vision-target')).toBeVisible();

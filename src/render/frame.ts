@@ -3,6 +3,7 @@ import { integrateArc } from '../geometry/geom';
 import { decodeAction } from '../policy/action';
 import { radiusFor } from '../sim/config';
 import type { Match } from '../sim/match';
+import { senseWorld, type Sensors } from '../observation/sensors';
 
 /** Render snapshot of one snake. body = [x0, y0, …] tail → head (the head point is last). */
 export interface SnakeFrame {
@@ -33,6 +34,9 @@ export interface FrameDebug {
   /** Extrapolation of each visible snake's current command for 1 s (exact arc kinematics). */
   extrapolations: Record<number, number[]>;
   gridCell: number;
+  /** Exact obs-v1 sensor readings of the focused snake this tick (for the "AI field of view" overlay). */
+  sensors?: Sensors | null;
+  sensorsId?: number;
 }
 
 export interface Frame {
@@ -92,7 +96,9 @@ export function buildFrame(match: Match, focusId: number, opts: { debug: boolean
       }
       extrapolations[s.id] = pts;
     }
-    debug = { decisions, trail: opts.trail.slice(), extrapolations, gridCell: w.rules.gridCell };
+    const focus = w.snakes[focusId];
+    debug = { decisions, trail: opts.trail.slice(), extrapolations, gridCell: w.rules.gridCell,
+      sensors: focus?.alive ? senseWorld(w, focus) : null, sensorsId: focusId };
   }
   return { tick: w.tick, time: w.time, worldSize: w.rules.worldSize, tickRate: w.rules.tickRate, maxTurnRate: w.rules.maxTurnRate, boostMinLength: w.rules.boostMinLength, snakes, food, focusId, debug, ended: match.ended };
 }

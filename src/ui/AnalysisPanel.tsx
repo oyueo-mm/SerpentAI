@@ -1,4 +1,6 @@
-import { useEffect, useState, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useState, type MutableRefObject } from 'react';
+import type { Camera } from '../render/renderer';
+import { AiViewSection } from './AiViewSection';
 import type { DecisionDebug } from '../ai/types';
 import { t } from '../i18n';
 import { TURN_LEVELS, decodeAction } from '../policy/action';
@@ -88,9 +90,16 @@ interface Props {
   fps: number;
   time: number;
   models: MlpModelFile[];
+  view: MutableRefObject<{ cam: Camera; w: number; h: number } | null>;
+  perception: boolean;
+  onPerception: (v: boolean) => void;
 }
 
-export function AnalysisPanel({ frame, inspectId, onInspect, leaders, records, stats, fps, time, models }: Props) {
+export function AnalysisPanel({ frame, inspectId, onInspect, leaders, records, stats, fps, time, models, view, perception, onPerception }: Props) {
+  const head = useCallback((): [number, number] | null => {
+    const sn = frame.current?.snakes.find((x) => x.id === inspectId && x.alive);
+    return sn ? [sn.x, sn.y] : null;
+  }, [frame, inspectId]);
   const [snap, setSnap] = useState<{ s?: SnakeFrame; dec?: DecisionDebug }>({});
   useEffect(() => {
     const id = setInterval(() => {
@@ -141,6 +150,7 @@ export function AnalysisPanel({ frame, inspectId, onInspect, leaders, records, s
             </>
           ) : <p className="text-xs text-slate-400">{t.common.loading}</p>}
         </Section>
+        <AiViewSection view={view} head={head} perception={perception} onPerception={onPerception} />
         <Section title={t.leaders.title}>
           <ol className="space-y-0.5" data-testid="leaderboard">
             {leaders.slice(0, 16).map((r, i) => (

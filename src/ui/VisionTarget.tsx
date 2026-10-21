@@ -104,7 +104,7 @@ export function VisionTarget() {
   return (
     <div className="relative h-full w-full bg-slate-100" data-testid="vision-target">
       <GameCanvas
-        frame={sim.frame} prevFrame={sim.prevFrame} frameAt={sim.frameAt} debug={NO_DEBUG} labels={false} overview={false} hud inspectId={0}
+        frame={sim.frame} prevFrame={sim.prevFrame} frameAt={sim.frameAt} debug={NO_DEBUG} labels={false} hud inspectId={0}
         onControl={config.agents[0].policy === 'human' ? onControl : undefined} theme={theme} interpolate={false}
         onDrawn={gt ? (tick, cam, w, h) => {
           const l = log.current!;

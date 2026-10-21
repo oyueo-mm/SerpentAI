@@ -4,6 +4,8 @@ import type { MlpModelFile } from '../policy/mlp';
 import { RULES_VERSION } from '../sim/config';
 import type { MatchJSON } from '../sim/match';
 import { AnalysisPanel } from './AnalysisPanel';
+import { CameraController, type CameraMode } from '../render/camera';
+import type { Camera } from '../render/renderer';
 import { GameCanvas } from './GameCanvas';
 import { Icon, IconButton, downloadText, formatTime } from './kit';
 import { SettingsPanel } from './SettingsPanel';
@@ -34,6 +36,11 @@ const narrow = () => typeof window !== 'undefined' && window.innerWidth < 1024;
 
 export function Arena({ mode, models, active }: Props) {
   const sim = useSimulation();
+  // View-only camera: lives outside the simulation and survives selection, speed changes and restarts.
+  const [camera] = useState(() => new CameraController());
+  const [camMode, setCamMode] = useState<CameraMode>('follow');
+  useEffect(() => camera.onModeChange(setCamMode), [camera]);
+  const view = useRef<{ cam: Camera; w: number; h: number } | null>(null);
   const learnedIds = models.map((m) => m.id);
   const [arena, setArena] = useState<ArenaSettings>(() => defaultArena(mode, learnedIds));
   const [applied, setApplied] = useState<ArenaSettings>(arena);
@@ -128,10 +135,15 @@ export function Arena({ mode, models, active }: Props) {
         )}
         <div className="relative min-w-0 flex-1">
           <GameCanvas
-            frame={sim.frame} prevFrame={sim.prevFrame} frameAt={sim.frameAt} debug={ui.debug} labels={ui.labels} overview={ui.overview} hud
-            inspectId={inspectId} onControl={mode === 'play' ? sim.api.human : undefined} touch={mode === 'play' ? touch : undefined}
-            onSelect={mode === 'watch' ? setInspectId : undefined} onFps={setFps}
+            frame={sim.frame} prevFrame={sim.prevFrame} frameAt={sim.frameAt} tickInterval={sim.tickInterval} debug={ui.debug} labels={ui.labels} hud smooth
+            camera={camera} inspectId={inspectId} onControl={mode === 'play' ? sim.api.human : undefined} touch={mode === 'play' ? touch : undefined}
+            onSelect={mode === 'watch' ? setInspectId : undefined} onFps={setFps} onView={(cam, w, h) => { view.current = { cam, w, h }; }}
           />
+          {camMode !== 'follow' && (
+            <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-lg bg-slate-900/75 px-3 py-1 text-[11px] text-white" data-testid="camera-hint">
+              {camMode === 'free' ? t.camera.freeHint : t.camera.overviewHint}
+            </div>
+          )}
           <div className="pointer-events-none absolute left-3 top-3 flex gap-2" data-testid="hud">
             {mode === 'play' && me && (
               <div className="rounded-lg bg-white/85 px-3 py-1.5 text-xs shadow-sm backdrop-blur">
@@ -145,7 +157,7 @@ export function Arena({ mode, models, active }: Props) {
           {mode === 'play' && help && !coarse && (
             <div className="absolute right-3 top-3 max-w-xs rounded-lg bg-white/90 p-3 text-xs text-slate-600 shadow-sm backdrop-blur" data-testid="controls-help">
               <div className="mb-1 flex items-center justify-between"><span className="font-semibold text-slate-800">{t.controls.title}</span><button type="button" onClick={() => setHelp(false)} className="text-slate-400 hover:text-slate-700" aria-label={t.common.close}>{Icon.close}</button></div>
-              <p>{t.controls.mouse}</p><p>{t.controls.keys}</p><p>{t.controls.pause}</p>
+              <p>{t.controls.mouse}</p><p>{t.controls.keys}</p><p>{t.controls.pause}</p><p>{t.controls.camera}</p>
             </div>
           )}
           {humanDead && (
@@ -163,7 +175,8 @@ export function Arena({ mode, models, active }: Props) {
         </div>
         {ui.rightOpen && (
           <aside className="absolute inset-y-0 right-0 z-30 w-[min(20rem,90vw)] border-l border-slate-200 bg-white shadow-xl lg:static lg:shadow-none">
-            <AnalysisPanel frame={sim.frame} inspectId={inspectId} onInspect={setInspectId} leaders={sim.ui.leaders} records={sim.ui.records} stats={sim.ui.stats} fps={fps} time={sim.ui.time} models={models} />
+            <AnalysisPanel frame={sim.frame} inspectId={inspectId} onInspect={setInspectId} leaders={sim.ui.leaders} records={sim.ui.records} stats={sim.ui.stats} fps={fps} time={sim.ui.time} models={models} view={view}
+              perception={ui.debug.perception} onPerception={(v) => setUi((u) => ({ ...u, debug: { ...u.debug, perception: v } }))} />
           </aside>
         )}
       </div>
@@ -174,7 +187,15 @@ export function Arena({ mode, models, active }: Props) {
         <div className="mx-1 h-6 w-px bg-slate-200" />
         <SpeedControl value={ui.speed} actual={sim.ui.stats.actualSpeed} running={running} onChange={setSpeed} />
         <div className="flex-1" />
-        {mode === 'watch' && <IconButton label={ui.overview ? t.dock.follow : t.dock.overview} onClick={() => setUi({ ...ui, overview: !ui.overview })} active={ui.overview} testId="overview">{Icon.globe}</IconButton>}
+        <div className="mr-1 flex rounded-lg bg-slate-100 p-0.5" role="radiogroup" aria-label={t.camera.label} data-testid="camera-mode">
+          {(['follow', 'free', 'overview'] as const).map((m) => (
+            <button key={m} type="button" role="radio" aria-checked={camMode === m} data-testid={`camera-${m}`} title={t.camera.tips[m]}
+              onClick={() => camera.setMode(m)}
+              className={`h-7 rounded-md px-2 text-xs font-medium ${camMode === m ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
+              {t.camera.modes[m]}
+            </button>
+          ))}
+        </div>
         <IconButton label={t.dock.save} onClick={() => void save()} testId="save">{Icon.save}</IconButton>
         <IconButton label={t.dock.load} onClick={() => fileInput.current?.click()} testId="load">{Icon.load}</IconButton>
         <input ref={fileInput} type="file" accept="application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void load(f); e.target.value = ''; }} />

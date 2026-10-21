@@ -37,7 +37,8 @@
 
 ## 실행 구성
 
-- **브라우저**: 시뮬레이션은 Web Worker(`sim.worker.ts`)에서 고정 틱으로 돌고, 메인 스레드는 최신 프레임을 requestAnimationFrame으로 그립니다. 배속은 실제 시간당 실행하는 틱 수만 바꿉니다(목표 배속과 측정 배속을 따로 표시). 1배속에서는 두 프레임 사이를 표시용으로만 보간합니다.
+- **브라우저**: 시뮬레이션은 Web Worker(`sim.worker.ts`)에서 고정 틱으로 돌고, 틱이 바뀌었을 때(또는 이벤트·250 ms마다) 프레임을 보냅니다. 메인 스레드는 requestAnimationFrame마다 직전 두 틱 사이를 **경로를 따라** 보간해 그립니다(머리는 실제 지나온 경로 위로, 꼬리는 이전 위치에서 따라옴; `src/render/interp.ts`). 몸통은 렌더링 전용 곡선(`src/render/path.ts`)으로 그리며 충돌 경로는 바꾸지 않습니다. 배속은 실제 시간당 실행하는 틱 수만 바꿉니다.
+- **카메라**: `src/render/camera.ts`의 `CameraController`(추적·자유·전체, 이동·확대)는 시뮬레이션과 분리된 표시 전용 상태입니다. Vision Bridge 대상 페이지는 컨트롤러 없이 고정 추적 카메라와 기존 렌더링(곡선 없음, 보간 없음)을 그대로 씁니다.
 - **학습**: Python이 Node 브리지 프로세스 여러 개(각 8개 환경)를 병렬로 구동합니다. 게임 규칙은 Python에 다시 구현하지 않습니다 (방법 A — [`REINFORCEMENT_LEARNING.md`](REINFORCEMENT_LEARNING.md)의 비교 참조).
 - **Vision Bridge**: 별도의 Chromium 창(Playwright)에 `?view=target` 게임을 띄우고, 러너는 그 창의 캔버스 스크린샷과 공식 입력만 씁니다. 러너가 받는 페이지 객체(`GuardedPage`)는 `evaluate` 같은 상태 접근을 예외로 막습니다. Ground Truth는 Calibration 모드에서 **실행이 끝난 뒤** 한 번만 읽습니다.
 

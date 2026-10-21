@@ -1,5 +1,7 @@
-import { VIEW_RADIUS, RAY_COUNT, rayAngle } from '../observation/sensors';
+import { FOOD_RANGE, FOOD_SECTORS, OPP_RANGE, RAY_COUNT, RAY_RANGE, VIEW_RADIUS, rayAngle } from '../observation/sensors';
+import { smoothPath } from './path';
 import { decodeAction } from '../policy/action';
+import type { Sensors } from '../observation/sensors';
 import type { Frame, SnakeFrame } from './frame';
 
 /**
@@ -78,9 +80,11 @@ export interface DebugFlags {
   danger: boolean;
   predictions: boolean;
   trail: boolean;
+  /** What the learned policy's observation (obs-v1) can actually sense, around the inspected snake. */
+  perception: boolean;
 }
 
-export const NO_DEBUG: DebugFlags = { colliders: false, centerline: false, heading: false, turnRadius: false, foodRadius: false, grid: false, danger: false, predictions: false, trail: false };
+export const NO_DEBUG: DebugFlags = { colliders: false, centerline: false, heading: false, turnRadius: false, foodRadius: false, grid: false, danger: false, predictions: false, trail: false, perception: false };
 
 export interface Camera {
   cx: number;
@@ -115,6 +119,11 @@ export interface RenderOptions {
   labels: boolean;
   /** Snake whose decision overlay is drawn (usually the focus). */
   inspectId: number;
+  /**
+   * Draw bodies as smooth curves (render-only). Off on the Vision Bridge target page, whose pixels the
+   * perception pipeline was built and validated on.
+   */
+  smooth?: boolean;
 }
 
 export function render(ctx: CanvasRenderingContext2D, frame: Frame, cam: Camera, width: number, height: number, o: RenderOptions): void {
@@ -174,7 +183,7 @@ export function render(ctx: CanvasRenderingContext2D, frame: Frame, cam: Camera,
 
   // Snakes: others first, the focused one on top.
   const order = [...frame.snakes].filter((s) => s.alive).sort((a, b) => (a.id === frame.focusId ? 1 : 0) - (b.id === frame.focusId ? 1 : 0) || a.id - b.id);
-  for (const s of order) drawSnake(ctx, s, T, z, toX, toY, s.id === frame.focusId);
+  for (const s of order) drawSnake(ctx, s, T, z, toX, toY, s.id === frame.focusId, o.smooth === true);
   if (o.labels) {
     ctx.font = '600 11px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
@@ -190,9 +199,9 @@ export function render(ctx: CanvasRenderingContext2D, frame: Frame, cam: Camera,
   if (o.hud) drawHud(ctx, frame, T, height);
 }
 
-function drawSnake(ctx: CanvasRenderingContext2D, s: SnakeFrame, T: Theme, z: number, toX: (x: number) => number, toY: (y: number) => number, isSelf: boolean): void {
+function drawSnake(ctx: CanvasRenderingContext2D, s: SnakeFrame, T: Theme, z: number, toX: (x: number) => number, toY: (y: number) => number, isSelf: boolean, smooth: boolean): void {
   const color = T.label ? (isSelf ? LABEL_COLORS.self : LABEL_COLORS.other) : T.snakes[s.skin % T.snakes.length];
-  const b = s.body;
+  const b = smooth ? smoothPath(s.body) : s.body;
   const n = b.length / 2;
   if (n < 2) return;
   const width = 2 * s.radius * z * T.thickness;
@@ -312,6 +321,7 @@ function drawDebug(ctx: CanvasRenderingContext2D, frame: Frame, o: RenderOptions
     ctx.stroke();
   }
   const s = frame.snakes.find((x) => x.id === o.inspectId && x.alive);
+  if (s && d.perception && dbg?.sensors && dbg.sensorsId === s.id) drawPerception(ctx, s, dbg.sensors, z, toX, toY);
   const dec = dbg?.decisions[o.inspectId];
   if (!s || !dec) return;
   if (d.danger && dec.danger) {
@@ -380,6 +390,65 @@ function drawDebug(ctx: CanvasRenderingContext2D, frame: Frame, o: RenderOptions
       ctx.stroke();
     }
   }
+}
+
+/**
+ * What obs-v1 senses around snake `s` (exact engine sensors of this tick, computed in the worker):
+ * 16 rays to the first body surface / wall within 400 u, 8 food sectors within 400 u, the 4 nearest
+ * heads within 450 u. Everything outside the 400 u circle is veiled: the policy cannot see it, however
+ * much of it the camera shows. Gaps between rays (22.5° apart) are drawn as lighter wedges.
+ */
+function drawPerception(ctx: CanvasRenderingContext2D, s: SnakeFrame, sen: Sensors, z: number, toX: (x: number) => number, toY: (y: number) => number): void {
+  const hx = toX(s.x), hy = toY(s.y);
+  const R = RAY_RANGE * z;
+  ctx.save();
+  // Veil outside the sensing radius (even-odd: whole canvas minus the circle).
+  ctx.beginPath();
+  ctx.rect(-1e4, -1e4, 2e4, 2e4);
+  ctx.arc(hx, hy, R, 0, Math.PI * 2, true);
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.28)';
+  ctx.fill('evenodd');
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 5]);
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.6)';
+  ctx.beginPath(); ctx.arc(hx, hy, R, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(124, 58, 237, 0.55)';
+  ctx.beginPath(); ctx.arc(hx, hy, OPP_RANGE * z, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  // Food sectors: boundaries and value sums.
+  const w = (2 * Math.PI) / FOOD_SECTORS;
+  ctx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
+  ctx.lineWidth = 1;
+  ctx.font = '600 10px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  for (let k = 0; k < FOOD_SECTORS; k++) {
+    const a = s.heading + (k - 0.5) * w;
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + Math.cos(a) * FOOD_RANGE * z, hy + Math.sin(a) * FOOD_RANGE * z); ctx.stroke();
+    const m = s.heading + k * w;
+    ctx.fillStyle = 'rgba(4, 120, 87, 0.9)';
+    ctx.fillText(sen.foodSum[k].toFixed(0), hx + Math.cos(m) * FOOD_RANGE * 0.9 * z, hy + Math.sin(m) * FOOD_RANGE * 0.9 * z);
+  }
+  // Rays: red = body surface, amber = wall, grey = nothing within range.
+  for (let i = 0; i < RAY_COUNT; i++) {
+    const a = s.heading + rayAngle(i);
+    const body = sen.rayBody[i], wall = sen.rayWall[i];
+    const dist = Math.min(body, wall, RAY_RANGE);
+    const hit = dist < RAY_RANGE - 1e-6;
+    ctx.strokeStyle = !hit ? 'rgba(100, 116, 139, 0.55)' : body <= wall ? 'rgba(220, 38, 38, 0.95)' : 'rgba(217, 119, 6, 0.95)';
+    ctx.lineWidth = hit ? 2 : 1;
+    const ex = hx + Math.cos(a) * dist * z, ey = hy + Math.sin(a) * dist * z;
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(ex, ey); ctx.stroke();
+    if (hit) { ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(ex, ey, 3.5, 0, Math.PI * 2); ctx.fill(); }
+  }
+  // Opponent heads that enter the observation (max 4, nearest first).
+  const fx = Math.cos(s.heading), fy = Math.sin(s.heading);
+  ctx.strokeStyle = 'rgba(124, 58, 237, 0.95)';
+  ctx.lineWidth = 2;
+  for (const op of sen.opponents) {
+    const wx = s.x + op.x * fx - op.y * fy, wy = s.y + op.x * fy + op.y * fx;
+    ctx.beginPath(); ctx.arc(toX(wx), toY(wy), op.radius * z + 6, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.restore();
 }
 
 /** Canvas HUD (part of the rendered image, so screen-based agents can read it). */
