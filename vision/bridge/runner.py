@@ -119,6 +119,7 @@ def serve_control(status: Status, port: int) -> ThreadingHTTPServer:
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Private-Network", "true")
             self.end_headers()
             self.wfile.write(body)
 
@@ -137,6 +138,7 @@ def serve_control(status: Status, port: int) -> ThreadingHTTPServer:
             self.send_response(204)
             self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Access-Control-Allow-Methods", "GET, POST")
+            self.send_header("Access-Control-Allow-Private-Network", "true")
             self.end_headers()
 
         def log_message(self, *a):
@@ -308,7 +310,7 @@ DEFAULT_BOTS = "greedy:2,survival:2,aggressive:2,potential:2,hybrid:2,mpc-lite:1
 
 def run_session(model: str, seed: int, mode: str = "realtime", theme: str = "default", bots: str = DEFAULT_BOTS, record: Path | None = None,
                 gt_record: bool = False, base: str = "http://127.0.0.1:4173/SerpentAI/", headless: bool = True, max_seconds: float = 130.0,
-                size: tuple[int, int] = (960, 720), control_port: int | None = None) -> dict[str, Any]:
+                size: tuple[int, int] = (960, 720), control_port: int | None = None, wait_start: bool = False) -> dict[str, Any]:
     from playwright.sync_api import sync_playwright
 
     url = target_url(base, seed, bots, theme, mode, gt_record)
@@ -327,6 +329,15 @@ def run_session(model: str, seed: int, mode: str = "realtime", theme: str = "def
         if mode == "lockstep":
             guarded.press("]")
             time.sleep(0.2)
+        if wait_start:
+            status.state = "armed"
+            print("armed: waiting for Start (POST http://127.0.0.1:%d/start) ..." % control_port, flush=True)
+            while status.command not in ("start", "stop", "estop"):
+                time.sleep(0.1)
+            if status.command != "start":
+                browser.close()
+                return {"steps": 0, "endReason": f"{status.command} before start"}
+            status.command = None
         runner = VisionRunner(guarded, policy, RunnerConfig(mode=mode, max_seconds=max_seconds), record, status)
         summary = runner.run()
         # Calibration only: the ground-truth log is read once the control loop has finished.
@@ -356,10 +367,11 @@ def main() -> None:
     ap.add_argument("--headed", action="store_true", help="show the controlled browser window")
     ap.add_argument("--max-seconds", type=float, default=130.0)
     ap.add_argument("--control-port", type=int, default=8765)
+    ap.add_argument("--wait-start", action="store_true", help="arm and wait for Start from the control endpoint / web panel")
     args = ap.parse_args()
     rec = Path(args.record) if args.record else None
     s = run_session(args.model, args.seed, args.mode, args.theme, args.bots, rec, args.gt_record, args.base, not args.headed, args.max_seconds,
-                    control_port=args.control_port)
+                    control_port=args.control_port, wait_start=args.wait_start and bool(args.control_port))
     print(json.dumps(s, indent=1, default=float))
 
 

@@ -29,6 +29,9 @@ interface Props {
 }
 
 /** Play / Watch page. Each arena owns its own simulation worker, so switching pages keeps both matches. */
+/** Below the lg breakpoint the drawers overlay the game, so only one may be open at a time. */
+const narrow = () => typeof window !== 'undefined' && window.innerWidth < 1024;
+
 export function Arena({ mode, models, active }: Props) {
   const sim = useSimulation();
   const learnedIds = models.map((m) => m.id);
@@ -175,8 +178,8 @@ export function Arena({ mode, models, active }: Props) {
         <IconButton label={t.dock.save} onClick={() => void save()} testId="save">{Icon.save}</IconButton>
         <IconButton label={t.dock.load} onClick={() => fileInput.current?.click()} testId="load">{Icon.load}</IconButton>
         <input ref={fileInput} type="file" accept="application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void load(f); e.target.value = ''; }} />
-        <IconButton label={t.dock.settings} onClick={() => setUi({ ...ui, settingsOpen: !ui.settingsOpen })} active={ui.settingsOpen} testId="toggle-settings">{Icon.settings}</IconButton>
-        <IconButton label={t.dock.analysis} onClick={() => setUi({ ...ui, rightOpen: !ui.rightOpen })} active={ui.rightOpen} testId="toggle-analysis">{Icon.chart}</IconButton>
+        <IconButton label={t.dock.settings} onClick={() => setUi({ ...ui, settingsOpen: !ui.settingsOpen, rightOpen: narrow() && !ui.settingsOpen ? false : ui.rightOpen })} active={ui.settingsOpen} testId="toggle-settings">{Icon.settings}</IconButton>
+        <IconButton label={t.dock.analysis} onClick={() => setUi({ ...ui, rightOpen: !ui.rightOpen, settingsOpen: narrow() && !ui.rightOpen ? false : ui.settingsOpen })} active={ui.rightOpen} testId="toggle-analysis">{Icon.chart}</IconButton>
       </footer>
     </div>
   );

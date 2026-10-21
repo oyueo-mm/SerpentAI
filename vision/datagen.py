@@ -42,7 +42,7 @@ def canvas_png(page) -> np.ndarray:
     return np.asarray(Image.open(io.BytesIO(png)).convert("RGB"))
 
 
-def wait_drawn(page, tick: int, label: bool, timeout: float = 5.0) -> dict:
+def wait_drawn(page, tick: int, label: bool, timeout: float = 20.0) -> dict:
     page.wait_for_function("([t, l]) => { const d = window.__serpentGT && window.__serpentGT.draws; if (!d || !d.length) return false; const x = d[d.length-1]; return x.tick === t && x.label === l; }",
                            arg=[tick, label], timeout=timeout * 1000)
     return page.evaluate("() => window.__serpentGT.draws[window.__serpentGT.draws.length - 1]")
@@ -50,6 +50,21 @@ def wait_drawn(page, tick: int, label: bool, timeout: float = 5.0) -> dict:
 
 def current_gt(page) -> dict:
     return page.evaluate("() => { const f = window.__serpentGT.frames; return f[f.length - 1]; }")
+
+
+def settle(page, timeout: float = 30.0) -> dict | None:
+    """Waits until the worker has processed every queued step (the tick stops advancing), then returns the GT frame."""
+    t0 = time.time()
+    last, same = None, 0
+    while time.time() - t0 < timeout:
+        g = current_gt(page)
+        tick = g["tick"] if g else None
+        same = same + 1 if tick == last else 0
+        last = tick
+        if same >= 3:
+            return g
+        page.wait_for_timeout(60)
+    return None
 
 
 def run_episode(pw_browser, out: Path, ep: int, args, rng: random.Random) -> int:
@@ -66,26 +81,29 @@ def run_episode(pw_browser, out: Path, ep: int, args, rng: random.Random) -> int
     warm = rng.randint(20, 120)
     for _ in range(warm):
         page.keyboard.press("]")
+    settle(page, 60)
     saved = 0
     for k in range(args.frames):
         for _ in range(rng.randint(1, 6)):
             page.keyboard.press("]")
-        page.wait_for_timeout(30)
-        gt = current_gt(page)
+        gt = settle(page)
         if not gt or not gt["self"]["alive"]:
             for _ in range(70):  # wait out the respawn delay
                 page.keyboard.press("]")
+            settle(page)
             continue
         try:
             draw = wait_drawn(page, gt["tick"], False)
-        except Exception:
+            img = canvas_png(page)
+            page.evaluate("() => window.__serpentSetLabel(true)")
+            wait_drawn(page, gt["tick"], True)
+            lab = label_ids(canvas_png(page))
+            page.evaluate("() => window.__serpentSetLabel(false)")
+            wait_drawn(page, gt["tick"], False)
+        except Exception as err:  # a slow machine can miss a frame: skip the sample, keep the episode
+            print(f"  skip sample {k}: {type(err).__name__}", flush=True)
+            page.evaluate("() => window.__serpentSetLabel(false)")
             continue
-        img = canvas_png(page)
-        page.evaluate("() => window.__serpentSetLabel(true)")
-        wait_drawn(page, gt["tick"], True)
-        lab = label_ids(canvas_png(page))
-        page.evaluate("() => window.__serpentSetLabel(false)")
-        wait_drawn(page, gt["tick"], False)
         name = f"e{ep:03d}_f{k:03d}"
         Image.fromarray(img).save(out / f"{name}.png")
         Image.fromarray(lab).save(out / f"{name}_label.png")

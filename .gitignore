@@ -16,3 +16,6 @@ vision/datasets/
 vision/runs/
 vision/sessions/
 *.zip
+*.log
+vision/EMERGENCY_STOP
+vision/models/*.pt.tmp

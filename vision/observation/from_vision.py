@@ -7,8 +7,10 @@ and the policy's own previous action.
 """
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 
@@ -24,6 +26,9 @@ TURN_LEVELS = [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1]
 #: equal-area radius of the detected blob is slightly smaller than the drawn one. Fitted on the training
 #: dataset by vision/calibration/fit.py (overwritten by vision/calibration/vision-calibration.json).
 PELLET_R_BIAS_PX = 0.25
+_CAL = Path(__file__).resolve().parent.parent / "calibration" / "vision-calibration.json"
+if _CAL.exists():
+    PELLET_R_BIAS_PX = float(json.loads(_CAL.read_text()).get("pelletBiasPx", PELLET_R_BIAS_PX))
 
 
 def pellet_value(r_u: float) -> float:

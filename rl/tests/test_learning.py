@@ -155,3 +155,17 @@ def test_exported_model_matches_typescript_inference(tmp_path: Path):
         ts = np.asarray(b.call("logits", model="parity-test", obs=obs.astype(float).tolist())[0]["logits"])
     assert np.abs(py - ts).max() < 1e-4
     assert (py.argmax(1) == ts.argmax(1)).all()
+
+
+def test_rebuilt_supervisor_callback_keeps_the_validation_spacing(tmp_path: Path):
+    """Regression: a callback rebuilt for a new curriculum stage must not fire a burst of validations."""
+    venv = SerpentVecEnv({"scenario": "A-food", "maxSteps": 30}, num_bridges=1, envs_per_bridge=2, seed=6)
+    try:
+        model = new_model(vecnormalize_for(venv, None, training=False), 0, n_steps=32, batch_size=64, n_epochs=1)
+        model.learn(64 * 5)  # stage 1 without validation: num_timesteps = 320
+        calls: list[int] = []
+        cb = SupervisorCallback.make(Supervisor(), lambda m, step: (calls.append(step), (1.0, {}))[1], eval_every=128, snapshot_dir=tmp_path)
+        model.learn(64 * 4, callback=cb, reset_num_timesteps=False)  # 320 → 576
+        assert calls == [384, 512]
+    finally:
+        venv.close()

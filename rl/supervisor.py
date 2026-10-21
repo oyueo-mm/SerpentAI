@@ -174,6 +174,11 @@ class SupervisorCallback:
                 self.best_rms: Any = None
                 self.history: list[dict[str, Any]] = []
 
+            def _on_training_start(self) -> None:
+                # The callback is rebuilt for every curriculum stage: schedule the next validation from the
+                # current step, so validations stay exactly eval_every apart across stages.
+                self.next_eval = (self.num_timesteps // eval_every + 1) * eval_every
+
             def _on_step(self) -> bool:
                 for inf in self.locals.get("infos", []):
                     if "episode_info" in inf:
