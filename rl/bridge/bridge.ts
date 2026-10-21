@@ -133,12 +133,20 @@ function handle(req: Request): void {
           experts.push(r.expert);
         }
       });
-      write({ ok: true, rewards, dones, truncated, infos, taken, canBoost, experts, terminals: terminal.length }, pack([...rows, ...terminal]));
+      write({ ok: true, rewards, dones, truncated, infos, taken, canBoost, experts, seeds: envs.map((e) => e.seed), terminals: terminal.length }, pack([...rows, ...terminal]));
       return;
     }
     case 'eval': {
       const res = evaluate(String(req.policy), req.env as EnvConfig, req.seeds as number[], req.stochastic === true);
       write({ ok: true, episodes: res });
+      return;
+    }
+    case 'logits': {
+      // TypeScript inference of a registered model on given obs rows (cross-language parity tests).
+      const m = models.get(String(req.model));
+      if (!m) throw new Error(`model ${req.model} not registered`);
+      const rows = req.obs as number[][];
+      write({ ok: true, logits: rows.map((o) => Array.from(m.logits(o))) });
       return;
     }
     case 'obs': {

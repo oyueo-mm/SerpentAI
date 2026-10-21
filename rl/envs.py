@@ -120,6 +120,7 @@ class SerpentVecEnv(VecEnv):
         self._masks = masks_from(cb)
         self._experts = np.asarray([e for b in self.bridges for e in b.last_experts], dtype=np.int64)
         self._taken = np.asarray([t for b in self.bridges for t in (b.last_taken or [0] * self.envs_per_bridge)], dtype=np.int64)
+        self._seeds = np.asarray([s for b in self.bridges for s in b.last_seeds], dtype=np.int64)
 
     def close(self) -> None:
         for b in self.bridges:
@@ -141,7 +142,13 @@ class SerpentVecEnv(VecEnv):
 
     @property
     def taken(self) -> np.ndarray:
+        """act-v1 actions actually executed in the last step."""
         return self._taken
+
+    @property
+    def seeds(self) -> np.ndarray:
+        """Seed of each env's current episode."""
+        return self._seeds
 
     def action_masks(self) -> np.ndarray:
         return self._masks

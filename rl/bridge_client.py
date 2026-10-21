@@ -52,6 +52,8 @@ class Bridge:
         self.last_experts: list[int] = []
         #: boost availability for the observations returned by the last reset/step.
         self.last_can_boost: list[bool] = []
+        #: episode seed of each env's current episode (after auto-reset: the new episode's seed).
+        self.last_seeds: list[int] = []
 
     # ------------------------------------------------------------- framing
     def _read_exact(self, n: int) -> bytes:
@@ -103,6 +105,7 @@ class Bridge:
         assert arr is not None
         self.last_experts = header["experts"]
         self.last_can_boost = header["canBoost"]
+        self.last_seeds = header["seeds"]
         return arr.reshape(-1, OBS_SIZE)
 
     def step_send(self, actions: np.ndarray | list[int]) -> None:
@@ -116,6 +119,7 @@ class Bridge:
         self.last_taken = header["taken"]
         self.last_experts = header["experts"]
         self.last_can_boost = header["canBoost"]
+        self.last_seeds = header["seeds"]
         return (
             rows[:n],
             np.asarray(header["rewards"], dtype=np.float32),

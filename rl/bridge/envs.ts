@@ -70,6 +70,16 @@ export interface EpisodeInfo {
   boostS: number;
   seed: number;
   scenario: Scenario;
+  /** Behaviour statistics for the training supervisor's anomaly detectors. */
+  pathLen: number;
+  netDisp: number;
+  /** Distinct 100 × 100 u cells the head visited. */
+  cells: number;
+  /** Fraction of decisions with the arena wall within 80 u of the head. */
+  wallNearFrac: number;
+  /** Fraction of decisions at full turn (|turn| = 1) in the same direction as the previous one. */
+  spinFrac: number;
+  killsBy: { body: number; headon: number };
 }
 
 export interface StepResult {
@@ -107,6 +117,7 @@ export class LearnerEnv {
   private noiseRng = new Rng(1);
   private expertRng = new Rng(2);
   private reward: RewardConfig = DEFAULT_REWARD;
+  private behaviour = { pathLen: 0, x0: 0, y0: 0, cells: new Set<number>(), wallNear: 0, spin: 0, lastTurn: 0, killsBy: { body: 0, headon: 0 } };
 
   constructor(config: EnvConfig, private readonly models: ModelStore) {
     this.setConfig(config);
@@ -144,6 +155,8 @@ export class LearnerEnv {
     this.steps = 0;
     this.ret = 0;
     this.prevAction = NOOP_ACTION;
+    const s0 = this.match.world.snakes[0];
+    this.behaviour = { pathLen: 0, x0: s0.x, y0: s0.y, cells: new Set([Math.floor(s0.x / 100) * 1000 + Math.floor(s0.y / 100)]), wallNear: 0, spin: 0, lastTurn: 0, killsBy: { body: 0, headon: 0 } };
     this.noiseRng = Rng.derive(this.seed, 77);
     this.expertRng = Rng.derive(this.seed, 78);
     return this.observe();
@@ -189,14 +202,24 @@ export class LearnerEnv {
     const a0 = this.match.agents[0];
     if (delay > 0) a0.queue.push({ tick: w.tick + delay, action: taken });
     let died = false;
+    const B = this.behaviour;
     for (let k = 0; k < this.decisionInterval; k++) {
       if (delay > 0) {
         while (a0.queue.length && a0.queue[0].tick <= w.tick) a0.held = a0.queue.shift()!.action;
       } else a0.held = taken;
       this.match.humanControl = actionToControl(a0.held);
+      const px = s.x, py = s.y;
       this.match.step();
+      for (const d of w.deaths) if (d.killer === 0) B.killsBy[d.cause === 'headon' ? 'headon' : 'body']++;
       if (!s.alive) { died = true; break; }
+      B.pathLen += Math.hypot(s.x - px, s.y - py);
+      B.cells.add(Math.floor(s.x / 100) * 1000 + Math.floor(s.y / 100));
     }
+    const turn = decodeAction(taken).turn;
+    if (Math.abs(turn) === 1 && turn === B.lastTurn) B.spin++;
+    B.lastTurn = turn;
+    const W = w.rules.worldSize;
+    if (Math.min(s.x, s.y, W - s.x, W - s.y) < 80) B.wallNear++;
     this.prevAction = taken;
     this.steps++;
     const R = this.reward;
@@ -213,6 +236,8 @@ export class LearnerEnv {
       r: this.ret, l: this.steps, survivalS: (died ? s.deathTick - s.spawnTick : w.tick - s.spawnTick) / w.rules.tickRate,
       finalLength: died ? 0 : s.length, maxLength: rec.maxLength, eaten: rec.eaten, kills: rec.kills, death: died ? s.deathCause : null,
       boostS: rec.boostTicks / w.rules.tickRate, seed: this.seed, scenario: this.config.scenario,
+      pathLen: B.pathLen, netDisp: Math.hypot(s.x - B.x0, s.y - B.y0), cells: B.cells.size, wallNearFrac: B.wallNear / this.steps,
+      spinFrac: B.spin / this.steps, killsBy: { ...B.killsBy },
     } : null;
     return { obs, reward: r, terminated: died, truncated, taken, canBoost: !died && this.canBoost(), expert: done ? -1 : this.expertAction(), info };
   }

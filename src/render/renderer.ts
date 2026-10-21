@@ -37,6 +37,19 @@ export interface Theme {
   hudFill: string;
   hudBoostOn: string;
   hudBoostOff: string;
+  /**
+   * Label rendering for segmentation ground truth: same geometry, flat class colours
+   * (floor white, wall black, own body red, other bodies green, pellets blue, eyes yellow), no HUD.
+   */
+  label?: boolean;
+}
+
+export const LABEL_COLORS = { floor: '#ffffff', wall: '#000000', self: '#ff0000', other: '#00ff00', pellet: '#0000ff', eye: '#ffff00' } as const;
+
+/** The label version of a theme (keeps its thickness so labels match the rendered geometry). */
+export function labelTheme(t: Theme): Theme {
+  return { ...t, background: LABEL_COLORS.floor, grid: LABEL_COLORS.floor, wall: LABEL_COLORS.wall, wallEdge: LABEL_COLORS.wall,
+    pellets: [LABEL_COLORS.pellet], outlineDarken: 0, shadow: false, label: true };
 }
 
 export const DEFAULT_THEME: Theme = {
@@ -161,7 +174,7 @@ export function render(ctx: CanvasRenderingContext2D, frame: Frame, cam: Camera,
 
   // Snakes: others first, the focused one on top.
   const order = [...frame.snakes].filter((s) => s.alive).sort((a, b) => (a.id === frame.focusId ? 1 : 0) - (b.id === frame.focusId ? 1 : 0) || a.id - b.id);
-  for (const s of order) drawSnake(ctx, s, T, z, toX, toY);
+  for (const s of order) drawSnake(ctx, s, T, z, toX, toY, s.id === frame.focusId);
   if (o.labels) {
     ctx.font = '600 11px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
@@ -172,12 +185,13 @@ export function render(ctx: CanvasRenderingContext2D, frame: Frame, cam: Camera,
     }
   }
 
+  if (T.label) return;
   drawDebug(ctx, frame, o, z, toX, toY);
   if (o.hud) drawHud(ctx, frame, T, height);
 }
 
-function drawSnake(ctx: CanvasRenderingContext2D, s: SnakeFrame, T: Theme, z: number, toX: (x: number) => number, toY: (y: number) => number): void {
-  const color = T.snakes[s.skin % T.snakes.length];
+function drawSnake(ctx: CanvasRenderingContext2D, s: SnakeFrame, T: Theme, z: number, toX: (x: number) => number, toY: (y: number) => number, isSelf: boolean): void {
+  const color = T.label ? (isSelf ? LABEL_COLORS.self : LABEL_COLORS.other) : T.snakes[s.skin % T.snakes.length];
   const b = s.body;
   const n = b.length / 2;
   if (n < 2) return;
@@ -195,14 +209,14 @@ function drawSnake(ctx: CanvasRenderingContext2D, s: SnakeFrame, T: Theme, z: nu
     ctx.stroke(path);
     ctx.restore();
   }
-  if (s.boosting) {
+  if (s.boosting && !T.label) {
     ctx.strokeStyle = shade(color, 0.65);
     ctx.globalAlpha = 0.55;
     ctx.lineWidth = width + Math.max(4, width * 0.45);
     ctx.stroke(path);
     ctx.globalAlpha = 1;
   }
-  ctx.strokeStyle = shade(color, -T.outlineDarken);
+  ctx.strokeStyle = T.label ? color : shade(color, -T.outlineDarken);
   ctx.lineWidth = width + Math.max(1.5, width * 0.14);
   ctx.stroke(path);
   ctx.strokeStyle = color;
@@ -213,10 +227,11 @@ function drawSnake(ctx: CanvasRenderingContext2D, s: SnakeFrame, T: Theme, z: nu
   const fx = Math.cos(s.heading), fy = Math.sin(s.heading), rx = -fy, ry = fx;
   for (const side of [-1, 1]) {
     const ex = hx + fx * r * 0.38 + rx * r * 0.46 * side, ey = hy + fy * r * 0.38 + ry * r * 0.46 * side;
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = T.label ? LABEL_COLORS.eye : '#ffffff';
     ctx.beginPath();
     ctx.arc(ex, ey, Math.max(1.5, r * 0.34), 0, Math.PI * 2);
     ctx.fill();
+    if (T.label) continue;
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
     ctx.arc(ex + fx * r * 0.12, ey + fy * r * 0.12, Math.max(0.8, r * 0.16), 0, Math.PI * 2);

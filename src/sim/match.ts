@@ -24,6 +24,8 @@ export interface MatchConfig {
   /** Dead snakes come back after respawnDelay seconds. */
   respawn?: boolean;
   respawnDelay?: number;
+  /** Snake ids that never respawn even when respawn is on (e.g. the Vision Bridge's player). */
+  respawnExclude?: number[];
   /** Match length in ticks (0 = endless). */
   durationTicks?: number;
   /** End when at most one snake is alive (tournament rounds without respawn). */
@@ -163,7 +165,7 @@ export class Match {
       a.queue = [];
       a.held = NOOP_ACTION;
       a.lastDecided = NOOP_ACTION;
-      if (this.config.respawn) a.respawnAt = w.tick + Math.round((this.config.respawnDelay ?? 2) * w.rules.tickRate);
+      if (this.config.respawn && !this.config.respawnExclude?.includes(d.id)) a.respawnAt = w.tick + Math.round((this.config.respawnDelay ?? 2) * w.rules.tickRate);
     }
     if (this.config.respawn) {
       for (const a of this.agents) {
