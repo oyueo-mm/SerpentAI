@@ -153,6 +153,7 @@ def serve_control(status: Status, port: int) -> ThreadingHTTPServer:
 class RunnerConfig:
     mode: str = "realtime"            # realtime | lockstep
     max_seconds: float = 130.0
+    max_steps: int = 0                # stop after this many control steps (0 = no limit); lockstep: 1200 = 120 s game time
     max_detect_failures: int = 8
     min_confidence: float = 0.3
     low_conf_frames: int = 10
@@ -212,6 +213,9 @@ class VisionRunner:
         try:
             check_target(self.page.url())
             while time.time() - t_start < cfg.max_seconds:
+                if cfg.max_steps and self.status.step >= cfg.max_steps:
+                    end_reason = "max_steps"
+                    break
                 self.check_stop()
                 step_t0 = time.time()
                 t_cap0 = time.time()
@@ -338,7 +342,7 @@ def run_session(model: str, seed: int, mode: str = "realtime", theme: str = "def
                 browser.close()
                 return {"steps": 0, "endReason": f"{status.command} before start"}
             status.command = None
-        runner = VisionRunner(guarded, policy, RunnerConfig(mode=mode, max_seconds=max_seconds), record, status)
+        runner = VisionRunner(guarded, policy, RunnerConfig(mode=mode, max_seconds=max_seconds, max_steps=1200 if mode == "lockstep" else 0), record, status)
         summary = runner.run()
         # Calibration only: the ground-truth log is read once the control loop has finished.
         if gt_record and record:

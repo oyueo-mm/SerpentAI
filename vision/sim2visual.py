@@ -103,6 +103,23 @@ def merge_reports(reports: list[dict]) -> dict[str, Any]:
     }
 
 
+def write_calibration(reports: list[dict], path: Path) -> None:
+    """Error-by-situation and per-feature observation error over the real-time sessions (Calibration page)."""
+    from vision.observation.encode import feature_names
+    tags: dict[str, dict[str, float]] = {}
+    for r in reports:
+        for t, st in r["obsErrorByTag"].items():
+            agg = tags.setdefault(t, {"sum": 0.0, "n": 0})
+            if st["n"]:
+                agg["sum"] += st["mean"] * st["n"]
+                agg["n"] += st["n"]
+    per = np.mean([r["obsMAEPerFeature"] for r in reports if r["obsMAEPerFeature"]], axis=0) if reports else np.zeros(84)
+    out = {"tags": {t: {"mean": a["sum"] / a["n"], "n": a["n"]} for t, a in tags.items() if a["n"]}, "perFeature": per.round(5).tolist(), "names": feature_names(),
+           "sessions": len(reports)}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(out, indent=1, default=float))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
@@ -125,6 +142,7 @@ def main() -> None:
         print("== E: vision, real time", flush=True)
         eps["E"], rep_e = vision_condition(model_file, seeds, "realtime", "default", sessions, "E", policy)
         res["measured"]["E"] = merge_reports(rep_e)
+        write_calibration(rep_e, Path(args.out).with_name("calibration.json"))
     if "D" in conds:
         print("== D: vision, lockstep", flush=True)
         eps["D"], rep_d = vision_condition(model_file, seeds, "lockstep", "default", sessions, "D", policy)

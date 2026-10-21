@@ -1,0 +1,9 @@
+{
+ "pelletBiasPx": -0.05478432161942015,
+ "pelletMatches": 41505,
+ "pelletBiasIQR": [
+  -0.12051432898285919,
+  0.013637457224396687
+ ],
+ "source": "vision\\datasets\\train"
+}

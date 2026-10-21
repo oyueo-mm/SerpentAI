@@ -84,23 +84,31 @@ def evaluate_dir(root: Path, detector: Callable[[np.ndarray], Detections] = dete
         if det.hud_fraction is not None:
             from vision.detection.classical import length_from_gauge
             acc["lengthRelErr"].append(abs(length_from_gauge(det.hud_fraction) - gt["self"]["length"]) / gt["self"]["length"])
-        # Heads: GT heads of others whose head centre is on screen and within the view radius.
-        gt_heads = []
+        # Heads: precision against every GT head on screen; recall over heads within the view radius
+        # (the region the game guarantees to show and the observation uses).
+        on_screen, in_view = [], []
         for o in gt["others"]:
             sx, sy = to_screen(cam, w, h, o["x"], o["y"])
-            if 4 <= sx < w - 4 and 4 <= sy < h - 4 and math.hypot(o["x"] - gt["self"]["x"], o["y"] - gt["self"]["y"]) < VIEW_RADIUS:
-                gt_heads.append((sx, sy, o))
-        matched = 0
-        for hd in det.heads:
-            best = min(gt_heads, key=lambda g: math.hypot(g[0] - hd.x, g[1] - hd.y), default=None)
-            if best and math.hypot(best[0] - hd.x, best[1] - hd.y) < 2.5 * best[2]["radius"] * cam["zoom"] + 3:
-                matched += 1
+            if 4 <= sx < w - 4 and 4 <= sy < h - 4:
+                on_screen.append((sx, sy, o))
+                if math.hypot(o["x"] - gt["self"]["x"], o["y"] - gt["self"]["y"]) < VIEW_RADIUS:
+                    in_view.append((sx, sy, o))
+        def match(g, hd):
+            return math.hypot(g[0] - hd.x, g[1] - hd.y) < 2.5 * g[2]["radius"] * cam["zoom"] + 3
+        true_pos = 0
+        # Ground truth lists snakes within 1.5 × VIEW_RADIUS of the player only: score detections there.
+        scored = [hd for hd in det.heads if math.hypot(hd.x - w / 2, hd.y - h / 2) / cam["zoom"] < 1.5 * VIEW_RADIUS - 20]
+        for hd in scored:
+            best = min(on_screen, key=lambda g: math.hypot(g[0] - hd.x, g[1] - hd.y), default=None)
+            if best and match(best, hd):
+                true_pos += 1
                 acc["headPosErrU"].append(math.hypot(best[0] - hd.x, best[1] - hd.y) / cam["zoom"])
                 acc["headHeadingErrDeg"].append(math.degrees(angle_err(hd.heading, best[2]["heading"])))
-        if det.heads:
-            acc["headPrecision"].append(matched / len(det.heads))
-        if gt_heads:
-            acc["headRecall"].append(min(1.0, matched / len(gt_heads)))
+        if scored:
+            acc["headPrecision"].append(true_pos / len(scored))
+        if in_view:
+            found = sum(1 for g in in_view if any(match(g, hd) for hd in det.heads))
+            acc["headRecall"].append(found / len(in_view))
         # Pellets.
         food = np.asarray(gt["food"], dtype=float).reshape(-1, 4)
         on = []

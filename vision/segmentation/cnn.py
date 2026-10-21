@@ -111,10 +111,11 @@ def random_crop(img: np.ndarray, lab: np.ndarray, size: int, rng: random.Random)
     return img[y0:y0 + size, x0:x0 + size], lab[y0:y0 + size, x0:x0 + size]
 
 
-def train(data: Path, val: Path, out: Path, epochs: int = 12, crop: int = 192, batch: int = 16, lr: float = 2e-3, seed: int = 0) -> dict:
+def train(data: Path, val: Path, out: Path, epochs: int = 12, crop: int = 192, batch: int = 16, lr: float = 2e-3, seed: int = 0, threads: int = 0) -> dict:
     rng = random.Random(seed)
     th.manual_seed(seed)
-    th.set_num_threads(max(1, th.get_num_threads()))
+    if threads > 0:
+        th.set_num_threads(threads)  # leave cores for concurrent RL training
     samples = [load_sample(p) for p in list_samples(data)]
     vals = [load_sample(p) for p in list_samples(val)][:60]
     model = TinyUNet()
@@ -239,8 +240,9 @@ def main() -> None:
     ap.add_argument("--val", required=True)
     ap.add_argument("--out", default="vision/models/seg-v1.pt")
     ap.add_argument("--epochs", type=int, default=12)
+    ap.add_argument("--threads", type=int, default=0)
     args = ap.parse_args()
-    train(Path(args.data), Path(args.val), Path(args.out), epochs=args.epochs)
+    train(Path(args.data), Path(args.val), Path(args.out), epochs=args.epochs, threads=args.threads)
 
 
 if __name__ == "__main__":
