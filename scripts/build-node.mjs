@@ -6,5 +6,6 @@ await Promise.all([
   build({ ...common, entryPoints: ['rl/bridge/bridge.ts'], outfile: 'rl/bridge/dist/bridge.mjs' }),
   build({ ...common, entryPoints: ['src/cli/tournament.ts'], outfile: 'dist-node/tournament.mjs' }),
   build({ ...common, entryPoints: ['src/cli/benchmark.ts'], outfile: 'dist-node/benchmark.mjs' }),
+  build({ ...common, entryPoints: ['src/cli/golden.ts'], outfile: 'dist-node/golden.mjs' }),
 ]);
-console.log('built rl/bridge/dist/bridge.mjs, dist-node/tournament.mjs, dist-node/benchmark.mjs');
+console.log('built rl/bridge/dist/bridge.mjs and dist-node/{tournament,benchmark,golden}.mjs');
