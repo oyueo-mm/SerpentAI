@@ -50,6 +50,7 @@ export function Arena({ mode, models, active }: Props) {
   const [fps, setFps] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const [help, setHelp] = useState(mode === 'play');
+  const [moreOpen, setMoreOpen] = useState(false);
   const touch = useRef<{ heading: number | null; boost: boolean }>({ heading: null, boost: false });
   const fileInput = useRef<HTMLInputElement>(null);
   const started = useRef(false);
@@ -182,12 +183,18 @@ export function Arena({ mode, models, active }: Props) {
       </div>
       <footer className="flex h-12 shrink-0 items-center gap-0.5 border-t border-slate-200 bg-white px-2" data-testid="dock">
         <IconButton label={running ? t.dock.pause : t.dock.play} onClick={toggleRun} testId="play-pause">{running ? Icon.pause : Icon.play}</IconButton>
-        <IconButton label={t.dock.step} onClick={step} testId="step">{Icon.step}</IconButton>
+        <span className="hidden sm:contents"><IconButton label={t.dock.step} onClick={step} testId="step">{Icon.step}</IconButton></span>
         <IconButton label={t.dock.reset} onClick={() => restart(1)} testId="reset">{Icon.reset}</IconButton>
-        <div className="mx-1 h-6 w-px bg-slate-200" />
+        <div className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
         <SpeedControl value={ui.speed} actual={sim.ui.stats.actualSpeed} running={running} onChange={setSpeed} />
         <div className="flex-1" />
-        <div className="mr-1 flex rounded-lg bg-slate-100 p-0.5" role="radiogroup" aria-label={t.camera.label} data-testid="camera-mode">
+        {/* Phones: one button cycling follow → free → overview (the dock must fit 360 px). */}
+        <button type="button" onClick={() => camera.setMode(camMode === 'follow' ? 'free' : camMode === 'free' ? 'overview' : 'follow')}
+          className="flex h-9 items-center gap-0.5 rounded-lg px-1.5 text-xs font-medium text-sky-700 hover:bg-sky-50 sm:hidden" data-testid="camera-cycle" title={t.camera.tips[camMode]}
+          aria-label={`${t.camera.label}: ${t.camera.modes[camMode]}`}>
+          {Icon.globe}{t.camera.modes[camMode]}
+        </button>
+        <div className="mr-1 hidden rounded-lg bg-slate-100 p-0.5 sm:flex" role="radiogroup" aria-label={t.camera.label} data-testid="camera-mode">
           {(['follow', 'free', 'overview'] as const).map((m) => (
             <button key={m} type="button" role="radio" aria-checked={camMode === m} data-testid={`camera-${m}`} title={t.camera.tips[m]}
               onClick={() => camera.setMode(m)}
@@ -196,8 +203,21 @@ export function Arena({ mode, models, active }: Props) {
             </button>
           ))}
         </div>
-        <IconButton label={t.dock.save} onClick={() => void save()} testId="save">{Icon.save}</IconButton>
-        <IconButton label={t.dock.load} onClick={() => fileInput.current?.click()} testId="load">{Icon.load}</IconButton>
+        <span className="hidden sm:contents">
+          <IconButton label={t.dock.save} onClick={() => void save()} testId="save">{Icon.save}</IconButton>
+          <IconButton label={t.dock.load} onClick={() => fileInput.current?.click()} testId="load">{Icon.load}</IconButton>
+        </span>
+        {/* Phones: step / save / load live in a small menu so the dock fits 360 px. */}
+        <div className="relative sm:hidden">
+          <IconButton label={t.dock.more} onClick={() => setMoreOpen((o) => !o)} active={moreOpen} testId="dock-more">⋯</IconButton>
+          {moreOpen && (
+            <div className="absolute bottom-11 right-0 z-40 flex gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-lg" role="menu" data-testid="dock-more-menu">
+              <IconButton label={t.dock.step} onClick={() => { setMoreOpen(false); step(); }} testId="step-m">{Icon.step}</IconButton>
+              <IconButton label={t.dock.save} onClick={() => { setMoreOpen(false); void save(); }} testId="save-m">{Icon.save}</IconButton>
+              <IconButton label={t.dock.load} onClick={() => { setMoreOpen(false); fileInput.current?.click(); }} testId="load-m">{Icon.load}</IconButton>
+            </div>
+          )}
+        </div>
         <input ref={fileInput} type="file" accept="application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void load(f); e.target.value = ''; }} />
         <IconButton label={t.dock.settings} onClick={() => setUi({ ...ui, settingsOpen: !ui.settingsOpen, rightOpen: narrow() && !ui.settingsOpen ? false : ui.rightOpen })} active={ui.settingsOpen} testId="toggle-settings">{Icon.settings}</IconButton>
         <IconButton label={t.dock.analysis} onClick={() => setUi({ ...ui, rightOpen: !ui.rightOpen, settingsOpen: narrow() && !ui.rightOpen ? false : ui.settingsOpen })} active={ui.rightOpen} testId="toggle-analysis">{Icon.chart}</IconButton>

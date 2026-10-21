@@ -43,7 +43,7 @@ test('direct play: the game runs, draws and accepts input', async ({ page, isMob
   expect(errors).toEqual([]);
 });
 
-test('pause, single step and reset', async ({ page }) => {
+test('pause, single step and reset', async ({ page, isMobile }) => {
   await page.goto('./#play');
   const dock = page.locator('[data-testid=page-play] [data-testid=dock]');
   await dock.getByTestId('play-pause').click();
@@ -52,7 +52,8 @@ test('pause, single step and reset', async ({ page }) => {
   const paused = await time.innerText();
   await page.waitForTimeout(800);
   expect(await time.innerText()).toBe(paused);
-  await dock.getByTestId('step').click();
+  if (isMobile) { await dock.getByTestId('dock-more').click(); await dock.getByTestId('step-m').click(); }
+  else await dock.getByTestId('step').click();
   await dock.getByTestId('reset').click();
   await expect(time).toHaveText('0:00', { timeout: 5000 }).catch(() => undefined);
 });
@@ -170,6 +171,21 @@ test('camera: right-drag frees the camera, wheel zooms, F returns to follow; the
   expect(errors).toEqual([]);
 });
 
+test('the dock fits the screen: every control is inside the viewport', async ({ page, isMobile }) => {
+  if (isMobile) await page.setViewportSize({ width: 360, height: 740 }); // smallest common phone width
+  for (const mode of ['play', 'watch']) {
+    await page.goto(`./#${mode}`);
+    const dock = page.locator(`[data-testid=page-${mode}] [data-testid=dock]`);
+    await expect(dock).toBeVisible();
+    const vw = page.viewportSize()!.width;
+    for (const b of await dock.locator('button:visible').all()) {
+      const box = (await b.boundingBox())!;
+      expect(box.x, await b.getAttribute('aria-label') ?? '').toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width, await b.getAttribute('aria-label') ?? '').toBeLessThanOrEqual(vw + 0.5);
+    }
+  }
+});
+
 test('camera: touch drag pans on phones without selecting', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'touch gesture');
   await page.goto('./#watch');
@@ -183,7 +199,7 @@ test('camera: touch drag pans on phones without selecting', async ({ page, isMob
     for (let k = 1; k <= 6; k++) at('pointermove', 150 - 15 * k, 200 - 10 * k);
     window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 7, pointerType: 'touch', bubbles: true }));
   });
-  await expect(page.locator('[data-testid=page-watch] [data-testid=camera-free]')).toHaveAttribute('aria-checked', 'true');
+  await expect(page.locator('[data-testid=page-watch] [data-testid=camera-cycle]')).toContainText('자유');
 });
 
 test('vision target page keeps the fixed follow camera (no camera input)', async ({ page }) => {

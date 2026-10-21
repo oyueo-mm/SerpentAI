@@ -27,6 +27,7 @@ export const ko = {
     settings: '설정',
     analysis: '분석',
     overview: '전체 보기',
+    more: '더보기 (한 틱 진행·저장·불러오기)',
     follow: '추적',
   },
   camera: {
