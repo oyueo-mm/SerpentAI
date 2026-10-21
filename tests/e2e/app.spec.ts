@@ -140,8 +140,13 @@ test('camera: right-drag frees the camera, wheel zooms, F returns to follow; the
   await root.getByTestId('play-pause').click();          // freeze the match
   if (!(await root.getByTestId('analysis-panel').isVisible())) await root.getByTestId('toggle-analysis').click();
   await expect(root.getByTestId('mpc-table')).toBeVisible({ timeout: 10000 });
+  // Baseline only once the pause has settled (frames in flight, 200–250 ms UI throttles), and check it is stable.
+  await page.waitForTimeout(1200);
   const time0 = await root.getByTestId('sim-time').innerText();
   const table0 = await root.getByTestId('mpc-table').innerText();
+  await page.waitForTimeout(700);
+  expect(await root.getByTestId('sim-time').innerText()).toBe(time0);
+  expect(await root.getByTestId('mpc-table').innerText()).toBe(table0);
   const box = (await canvas.boundingBox())!;
   const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
   await page.mouse.move(cx, cy);
@@ -159,6 +164,7 @@ test('camera: right-drag frees the camera, wheel zooms, F returns to follow; the
   await page.keyboard.press('KeyF');
   await expect(root.getByTestId('camera-follow')).toHaveAttribute('aria-checked', 'true');
   // Camera input changed nothing in the paused match: same time, same MPC evaluation.
+  await page.waitForTimeout(700);
   expect(await root.getByTestId('sim-time').innerText()).toBe(time0);
   expect(await root.getByTestId('mpc-table').innerText()).toBe(table0);
   expect(errors).toEqual([]);
