@@ -3,6 +3,7 @@ import type { CameraController } from '../render/camera';
 import type { Frame } from '../render/frame';
 import { interpolateFrame } from '../render/interp';
 import { DEFAULT_THEME, cameraFor, render, type Camera, type DebugFlags, type Theme } from '../render/renderer';
+import type { RenderQuality } from '../render/quality';
 import type { Control } from '../sim/world';
 
 interface Props {
@@ -34,6 +35,8 @@ interface Props {
   interpolate?: boolean;
   /** Render bodies as smooth curves (render-only; off on the Vision Bridge target page). */
   smooth?: boolean;
+  /** Graphics quality (DPR cap, curve detail, outline, glow, frame cap). Absent = original rendering. */
+  quality?: RenderQuality;
   testId?: string;
 }
 
@@ -61,10 +64,11 @@ export function GameCanvas(p: Props) {
     let lastHeading: number | null = null;
     const keys = new Set<string>();
     let lastSent = '';
-    let frames = 0, fpsT = performance.now(), viewT = 0;
+    let viewT = 0;
 
+    let dprCap = props.current.quality?.dprCap ?? 2;
     const resize = () => {
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const dpr = Math.min(dprCap, window.devicePixelRatio || 1);
       const r = el.getBoundingClientRect();
       size = { w: r.width, h: r.height };
       el.width = Math.round(r.width * dpr);
@@ -78,23 +82,51 @@ export function GameCanvas(p: Props) {
     const cameraBusy = () => pan !== null || touches.size > 0;
     const capture = (id: number) => { try { el.setPointerCapture(id); } catch { /* pointer already gone */ } };
 
+    let lastDraw = 0;
+    let lastKey: unknown[] = [];
+    let activeFrames = 0, activeT = performance.now();
     const draw = () => {
       raf = requestAnimationFrame(draw);
       const P = props.current;
-      let f = P.frame.current;
-      if (!f || size.w === 0) return;
+      const q = P.quality;
+      if ((q?.dprCap ?? 2) !== dprCap) { dprCap = q?.dprCap ?? 2; resize(); lastKey = []; }
+      const raw = P.frame.current;
+      if (!raw || size.w === 0) return;
+      const now = performance.now();
+      if (q && q.maxFps > 0 && now - lastDraw < 1000 / q.maxFps - 2) { steer(P, raw); return; }
+      let f = raw;
+      let alpha = 1;
       const prev = P.prevFrame.current;
       if (P.interpolate !== false && prev && prev.frame.tick < f.tick) {
         const span = P.tickInterval?.current ?? P.frameAt.current - prev.at;
-        if (span > 0 && span < 250) f = interpolateFrame(prev.frame, f, (performance.now() - P.frameAt.current) / span);
+        if (span > 0 && span < 250) {
+          alpha = (now - P.frameAt.current) / span;
+          f = interpolateFrame(prev.frame, f, alpha);
+        }
       }
       const cam = P.camera ? P.camera.view(f, size.w, size.h) : cameraFor(f, size.w, size.h, false);
-      render(ctx, f, cam, size.w, size.h, { theme: P.theme ?? DEFAULT_THEME, debug: P.debug, hud: P.hud, labels: P.labels, inspectId: P.inspectId, smooth: P.smooth });
+      // Nothing changed since the last draw (e.g. paused, no camera movement): skip the expensive redraw.
+      const key = [raw, alpha >= 1, cam.cx, cam.cy, cam.zoom, size.w, size.h, P.debug, P.labels, P.inspectId, P.theme, q, P.smooth];
+      const changed = alpha < 1 || key.some((v, i) => v !== lastKey[i]);
+      if (!changed && q) { activeFrames = 0; activeT = now; steer(P, raw); return; }
+      lastKey = key;
+      lastDraw = now;
+      render(ctx, f, cam, size.w, size.h, { theme: P.theme ?? DEFAULT_THEME, debug: P.debug, hud: P.hud, labels: P.labels, inspectId: P.inspectId, smooth: P.smooth, quality: q });
       P.onDrawn?.(f.tick, cam, size.w, size.h);
-      const now = performance.now();
       if (P.onView && now - viewT > 250) { viewT = now; P.onView(cam, size.w, size.h); }
+      // FPS over animated frames only (a paused, unchanged view draws nothing and must not count as slow).
+      activeFrames++;
+      if (now - activeT > 1000) {
+        P.onFps?.((activeFrames * 1000) / (now - activeT));
+        activeFrames = 0; activeT = now;
+      }
+      steer(P, f, cam);
+    };
+
+    const steer = (P: Props, f: Frame, camIn?: Camera) => {
       // Human control: touch joystick > keyboard turn > pointer heading. Camera gestures never steer.
       if (P.onControl) {
+        const cam = camIn ?? P.camera?.last ?? cameraFor(f, size.w, size.h, false);
         const focus = f.snakes.find((s) => s.id === f!.focusId);
         let c: Control = {};
         const left = keys.has('ArrowLeft') || keys.has('KeyA'), right = keys.has('ArrowRight') || keys.has('KeyD');
@@ -112,8 +144,6 @@ export function GameCanvas(p: Props) {
         const key = JSON.stringify(c);
         if (key !== lastSent) { lastSent = key; P.onControl(c); }
       }
-      frames++;
-      if (now - fpsT > 1000) { P.onFps?.((frames * 1000) / (now - fpsT)); frames = 0; fpsT = now; }
     };
     raf = requestAnimationFrame(draw);
 

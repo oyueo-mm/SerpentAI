@@ -1,5 +1,6 @@
 import { FOOD_RANGE, FOOD_SECTORS, OPP_RANGE, RAY_COUNT, RAY_RANGE, VIEW_RADIUS, rayAngle } from '../observation/sensors';
 import { smoothPath } from './path';
+import type { RenderQuality } from './quality';
 import { decodeAction } from '../policy/action';
 import type { Sensors } from '../observation/sensors';
 import type { Frame, SnakeFrame } from './frame';
@@ -124,6 +125,11 @@ export interface RenderOptions {
    * perception pipeline was built and validated on.
    */
   smooth?: boolean;
+  /**
+   * Graphics quality (render-only). Absent = the original drawing path, kept unchanged for the Vision
+   * Bridge target page whose pixels the perception pipeline was validated on.
+   */
+  quality?: RenderQuality;
 }
 
 export function render(ctx: CanvasRenderingContext2D, frame: Frame, cam: Camera, width: number, height: number, o: RenderOptions): void {
@@ -166,7 +172,20 @@ export function render(ctx: CanvasRenderingContext2D, frame: Frame, cam: Camera,
   // Pellets.
   const f = frame.food;
   const margin = 30 / z;
-  for (let i = 0; i < f.length; i += 5) {
+  const batch = !!o.quality && !o.debug.foodRadius;
+  if (batch) {
+    // One path per colour instead of one fill per pellet (hundreds of draw calls → a handful).
+    const paths = T.pellets.map(() => new Path2D());
+    for (let i = 0; i < f.length; i += 5) {
+      const x = f[i], y = f[i + 1];
+      if (x < vx0 - margin || x > vx1 + margin || y < vy0 - margin || y > vy1 + margin) continue;
+      const p = paths[f[i + 4] % paths.length], sx = toX(x), sy = toY(y), r = Math.max(1.2, f[i + 2] * z);
+      p.moveTo(sx + r, sy);
+      p.arc(sx, sy, r, 0, Math.PI * 2);
+    }
+    paths.forEach((p, k) => { ctx.fillStyle = T.pellets[k]; ctx.fill(p); });
+  }
+  for (let i = 0; i < (batch ? 0 : f.length); i += 5) {
     const x = f[i], y = f[i + 1];
     if (x < vx0 - margin || x > vx1 + margin || y < vy0 - margin || y > vy1 + margin) continue;
     const r = Math.max(1.2, f[i + 2] * z);
@@ -183,7 +202,10 @@ export function render(ctx: CanvasRenderingContext2D, frame: Frame, cam: Camera,
 
   // Snakes: others first, the focused one on top.
   const order = [...frame.snakes].filter((s) => s.alive).sort((a, b) => (a.id === frame.focusId ? 1 : 0) - (b.id === frame.focusId ? 1 : 0) || a.id - b.id);
-  for (const s of order) drawSnake(ctx, s, T, z, toX, toY, s.id === frame.focusId, o.smooth === true);
+  for (const s of order) {
+    if (o.quality && !onScreen(s, vx0, vy0, vx1, vy1, s.radius * 2 + margin)) continue;
+    drawSnake(ctx, s, T, z, toX, toY, s.id === frame.focusId, o.smooth === true, o.quality);
+  }
   if (o.labels) {
     ctx.font = '600 11px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
@@ -199,9 +221,22 @@ export function render(ctx: CanvasRenderingContext2D, frame: Frame, cam: Camera,
   if (o.hud) drawHud(ctx, frame, T, height);
 }
 
-function drawSnake(ctx: CanvasRenderingContext2D, s: SnakeFrame, T: Theme, z: number, toX: (x: number) => number, toY: (y: number) => number, isSelf: boolean, smooth: boolean): void {
+/** Whether any part of the body's bounding box (grown by `pad` u) intersects the visible world box. */
+function onScreen(s: SnakeFrame, x0: number, y0: number, x1: number, y1: number, pad: number): boolean {
+  const b = s.body;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (let i = 0; i < b.length; i += 2) {
+    const x = b[i], y = b[i + 1];
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+  }
+  return maxX >= x0 - pad && minX <= x1 + pad && maxY >= y0 - pad && minY <= y1 + pad;
+}
+
+function drawSnake(ctx: CanvasRenderingContext2D, s: SnakeFrame, T: Theme, z: number, toX: (x: number) => number, toY: (y: number) => number, isSelf: boolean, smooth: boolean, q?: RenderQuality): void {
   const color = T.label ? (isSelf ? LABEL_COLORS.self : LABEL_COLORS.other) : T.snakes[s.skin % T.snakes.length];
-  const b = smooth ? smoothPath(s.body) : s.body;
+  const samples = q ? q.smoothSamples : 3;
+  const b = smooth && samples > 0 ? smoothPath(s.body, samples) : s.body;
   const n = b.length / 2;
   if (n < 2) return;
   const width = 2 * s.radius * z * T.thickness;
@@ -218,16 +253,18 @@ function drawSnake(ctx: CanvasRenderingContext2D, s: SnakeFrame, T: Theme, z: nu
     ctx.stroke(path);
     ctx.restore();
   }
-  if (s.boosting && !T.label) {
+  if (s.boosting && !T.label && (q?.glow ?? true)) {
     ctx.strokeStyle = shade(color, 0.65);
     ctx.globalAlpha = 0.55;
     ctx.lineWidth = width + Math.max(4, width * 0.45);
     ctx.stroke(path);
     ctx.globalAlpha = 1;
   }
-  ctx.strokeStyle = T.label ? color : shade(color, -T.outlineDarken);
-  ctx.lineWidth = width + Math.max(1.5, width * 0.14);
-  ctx.stroke(path);
+  if (q?.outline ?? true) {
+    ctx.strokeStyle = T.label ? color : shade(color, -T.outlineDarken);
+    ctx.lineWidth = width + Math.max(1.5, width * 0.14);
+    ctx.stroke(path);
+  }
   ctx.strokeStyle = color;
   ctx.lineWidth = width;
   ctx.stroke(path);
@@ -400,7 +437,8 @@ function drawDebug(ctx: CanvasRenderingContext2D, frame: Frame, o: RenderOptions
  */
 function drawPerception(ctx: CanvasRenderingContext2D, s: SnakeFrame, sen: Sensors, z: number, toX: (x: number) => number, toY: (y: number) => number): void {
   const hx = toX(s.x), hy = toY(s.y);
-  const R = RAY_RANGE * z;
+  const rg = sen.ranges ?? { ray: RAY_RANGE, food: FOOD_RANGE, opp: OPP_RANGE };
+  const R = rg.ray * z;
   ctx.save();
   // Veil outside the sensing radius (even-odd: whole canvas minus the circle).
   ctx.beginPath();
@@ -413,7 +451,7 @@ function drawPerception(ctx: CanvasRenderingContext2D, s: SnakeFrame, sen: Senso
   ctx.strokeStyle = 'rgba(15, 23, 42, 0.6)';
   ctx.beginPath(); ctx.arc(hx, hy, R, 0, Math.PI * 2); ctx.stroke();
   ctx.strokeStyle = 'rgba(124, 58, 237, 0.55)';
-  ctx.beginPath(); ctx.arc(hx, hy, OPP_RANGE * z, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(hx, hy, rg.opp * z, 0, Math.PI * 2); ctx.stroke();
   ctx.setLineDash([]);
   // Food sectors: boundaries and value sums.
   const w = (2 * Math.PI) / FOOD_SECTORS;
@@ -423,17 +461,17 @@ function drawPerception(ctx: CanvasRenderingContext2D, s: SnakeFrame, sen: Senso
   ctx.textAlign = 'center';
   for (let k = 0; k < FOOD_SECTORS; k++) {
     const a = s.heading + (k - 0.5) * w;
-    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + Math.cos(a) * FOOD_RANGE * z, hy + Math.sin(a) * FOOD_RANGE * z); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + Math.cos(a) * rg.food * z, hy + Math.sin(a) * rg.food * z); ctx.stroke();
     const m = s.heading + k * w;
     ctx.fillStyle = 'rgba(4, 120, 87, 0.9)';
-    ctx.fillText(sen.foodSum[k].toFixed(0), hx + Math.cos(m) * FOOD_RANGE * 0.9 * z, hy + Math.sin(m) * FOOD_RANGE * 0.9 * z);
+    ctx.fillText(sen.foodSum[k].toFixed(0), hx + Math.cos(m) * rg.food * 0.9 * z, hy + Math.sin(m) * rg.food * 0.9 * z);
   }
   // Rays: red = body surface, amber = wall, grey = nothing within range.
   for (let i = 0; i < RAY_COUNT; i++) {
     const a = s.heading + rayAngle(i);
     const body = sen.rayBody[i], wall = sen.rayWall[i];
-    const dist = Math.min(body, wall, RAY_RANGE);
-    const hit = dist < RAY_RANGE - 1e-6;
+    const dist = Math.min(body, wall, rg.ray);
+    const hit = dist < rg.ray - 1e-6;
     ctx.strokeStyle = !hit ? 'rgba(100, 116, 139, 0.55)' : body <= wall ? 'rgba(220, 38, 38, 0.95)' : 'rgba(217, 119, 6, 0.95)';
     ctx.lineWidth = hit ? 2 : 1;
     const ex = hx + Math.cos(a) * dist * z, ey = hy + Math.sin(a) * dist * z;

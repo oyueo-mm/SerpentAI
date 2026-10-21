@@ -1,5 +1,5 @@
 import { useEffect, useState, type MutableRefObject } from 'react';
-import { FOOD_RANGE, FOOD_SECTORS, OPP_K, OPP_RANGE, RAY_COUNT, RAY_RANGE } from '../observation/sensors';
+import { FOOD_SECTORS, OBS_V1_RANGES, OPP_K, RAY_COUNT, RAY_RANGE, type SensorRanges } from '../observation/sensors';
 import type { Camera } from '../render/renderer';
 import { Section, Toggle } from './kit';
 
@@ -20,6 +20,9 @@ interface Props {
   head: () => [number, number] | null;
   perception: boolean;
   onPerception: (v: boolean) => void;
+  /** Sensing applied to the inspected snake (from the frame) and the match's heuristic setting. */
+  info: () => { ranges: SensorRanges; kind: 'obs-v1' | 'setting' | 'legacy' } | null;
+  setting: number | undefined;
 }
 
 /**
@@ -27,26 +30,37 @@ interface Props {
  * the engine around the snake's head and never depends on the camera, so panning or zooming changes only
  * the picture, not the AI's input.
  */
-export function AiViewSection({ view, head, perception, onPerception }: Props) {
+export function AiViewSection({ view, head, perception, onPerception, info, setting }: Props) {
   const [s, setS] = useState<{ halfW: number; halfH: number; frac: number } | null>(null);
+  const [inf, setInf] = useState<ReturnType<Props['info']>>(null);
   useEffect(() => {
     const id = setInterval(() => {
-      const v = view.current, h = head();
+      const v = view.current, h = head(), i = info();
+      setInf(i);
       if (!v) return;
-      setS({ halfW: v.w / 2 / v.cam.zoom, halfH: v.h / 2 / v.cam.zoom, frac: h ? sensedFraction(v.cam, v.w, v.h, h[0], h[1]) : NaN });
+      setS({ halfW: v.w / 2 / v.cam.zoom, halfH: v.h / 2 / v.cam.zoom, frac: h ? sensedFraction(v.cam, v.w, v.h, h[0], h[1], i?.ranges.ray ?? RAY_RANGE) : NaN });
     }, 500);
     return () => clearInterval(id);
-  }, [view, head]);
-  const gap = (2 * RAY_RANGE * Math.sin(Math.PI / RAY_COUNT)).toFixed(0);
+  }, [view, head, info]);
+  const rg = inf?.ranges ?? OBS_V1_RANGES;
+  const gap = (2 * rg.ray * Math.sin(Math.PI / RAY_COUNT)).toFixed(0);
+  const kindLabel = inf?.kind === 'obs-v1' ? '학습 모델 · obs-v1 고정 범위' : inf?.kind === 'setting' ? '휴리스틱·MPC · 설정값' : '기존 실험 범위';
   return (
     <Section title="AI 시야" defaultOpen={false}>
       <Toggle label="360° 감지 범위 표시" checked={perception} onChange={onPerception} testId="ai-view-toggle" hint="광선·먹이 구역·추적 대상과 감지 범위 밖(어둡게)" />
       <div className="space-y-1.5 text-xs leading-relaxed text-slate-600" data-testid="ai-view-text">
-        <p>학습 정책(obs-v1)은 화면 전체가 아니라 머리 주변의 정해진 양만 봅니다. 방향은 <b>360° 전방위</b>입니다.</p>
+        <p className="rounded-md bg-sky-50 px-2 py-1.5 text-sky-800" data-testid="ai-view-ranges">
+          관전 대상의 감지 범위: <b>{kindLabel}</b> — 장애물·먹이 {rg.ray.toFixed(0)} u, 상대 머리 {rg.opp.toFixed(0)} u
+        </p>
+        <p className="text-[11px] text-slate-500">
+          학습 모델(PPO·BC·DAgger)은 항상 obs-v1 고정 범위(장애물·먹이 {OBS_V1_RANGES.ray} u, 상대 {OBS_V1_RANGES.opp} u)로 판단합니다.
+          휴리스틱·MPC는 설정의 "AI 감지 거리"({setting === undefined ? '기존 실험 값' : `${setting} u`})를 씁니다.
+        </p>
+        <p>AI는 화면 전체가 아니라 머리 주변의 정해진 양만 봅니다. 방향은 <b>360° 전방위</b>입니다.</p>
         <ul className="list-disc space-y-0.5 pl-4">
-          <li>장애물: {RAY_COUNT}개 광선(22.5° 간격)으로 반경 {RAY_RANGE} u 안의 가장 가까운 몸통 표면과 벽까지의 거리만 압니다. 광선 사이는 보지 못합니다 — {RAY_RANGE} u 거리에서 광선 사이 간격은 약 {gap} u입니다. 좁은 꼬리 끝이나 광선과 나란한 몸통은 놓칠 수 있습니다.</li>
-          <li>먹이: 반경 {FOOD_RANGE} u를 {FOOD_SECTORS}개 구역으로 나눠 구역별 <b>합계와 가장 가까운 거리</b>만 압니다. 개별 먹이 위치는 모릅니다.</li>
-          <li>상대: {OPP_RANGE} u 안에서 가장 가까운 머리 {OPP_K}개의 위치·방향·속도·크기만 압니다. 상대의 몸통 모양은 광선으로만 봅니다.</li>
+          <li>장애물: {RAY_COUNT}개 광선(22.5° 간격)으로 반경 {rg.ray.toFixed(0)} u 안의 가장 가까운 몸통 표면과 벽까지의 거리만 압니다. 광선 사이는 보지 못합니다 — {rg.ray.toFixed(0)} u 거리에서 광선 사이 간격은 약 {gap} u입니다. 좁은 꼬리 끝이나 광선과 나란한 몸통은 놓칠 수 있습니다.</li>
+          <li>먹이: 반경 {rg.food.toFixed(0)} u를 {FOOD_SECTORS}개 구역으로 나눠 구역별 <b>합계와 가장 가까운 거리</b>만 압니다(학습 모델 기준; MPC는 이 반경 안의 개별 먹이를 직접 봅니다).</li>
+          <li>상대: {rg.opp.toFixed(0)} u 안에서 가장 가까운 머리 {OPP_K}개의 위치·방향·속도·크기를 압니다. 상대의 몸통 모양은 광선으로만 봅니다.</li>
           <li>자기 몸통은 감지하지 않습니다(자기 충돌이 없는 규칙).</li>
         </ul>
         {s && (

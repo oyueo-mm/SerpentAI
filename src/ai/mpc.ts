@@ -1,4 +1,5 @@
 import { NUM_ACTIONS, decodeAction } from '../policy/action';
+import { VIEW_RADIUS } from '../observation/sensors';
 import { rollout, visibleHeads, visiblePellets, type PredictedHead } from './local';
 import type { Decision, DecisionContext, MpcCandidate, Policy } from './types';
 import type { Pellet, Snake, World } from '../sim/world';
@@ -55,10 +56,10 @@ export class MpcPolicy implements Policy {
   }
 
   /** Evaluates every candidate; exported separately so tests and the overlay can inspect the plan. */
-  plan(world: World, self: Snake, heads?: PredictedHead[]): { best: number; candidates: MpcCandidate[] } {
+  plan(world: World, self: Snake, heads?: PredictedHead[], view = VIEW_RADIUS): { best: number; candidates: MpcCandidate[] } {
     const c = this.config;
-    const hs = heads ?? visibleHeads(world, self);
-    const pellets = visiblePellets(world, self);
+    const hs = heads ?? visibleHeads(world, self, view);
+    const pellets = visiblePellets(world, self, view);
     const near = pellets.filter((p) => Math.hypot(p.x - self.x, p.y - self.y) < c.horizon * world.rules.boostSpeed + 40);
     const canBoost = self.length > world.rules.boostMinLength;
     const candidates: MpcCandidate[] = [];
@@ -68,7 +69,7 @@ export class MpcPolicy implements Policy {
       const conts = c.depth === 2 ? c.turns2 : [undefined];
       let best: MpcCandidate | undefined;
       for (const turn2 of conts) {
-        const roll = rollout(world, self, hs, near, { turn, turn2, switchTime: c.horizon * c.split, boost, horizon: c.horizon, step: c.step, margin: c.margin });
+        const roll = rollout(world, self, hs, near, { turn, turn2, switchTime: c.horizon * c.split, boost, horizon: c.horizon, step: c.step, margin: c.margin, view });
         const w = c.weights;
         const food = roll.food;
         const collision = roll.hitTime < Infinity ? 1 + (c.horizon - roll.hitTime) / c.horizon : 0;
@@ -92,7 +93,7 @@ export class MpcPolicy implements Policy {
 
   decide(ctx: DecisionContext): Decision {
     const t0 = globalThis.performance?.now() ?? 0;
-    const { best, candidates } = this.plan(ctx.world, ctx.self);
+    const { best, candidates } = this.plan(ctx.world, ctx.self, undefined, ctx.sensing ?? VIEW_RADIUS);
     const evalMs = (globalThis.performance?.now() ?? 0) - t0;
     const chosen = candidates[best];
     const reason = chosen.cost.collision > 0 ? 'evade' : chosen.cost.food > 0 ? 'food' : 'cruise';

@@ -1,5 +1,5 @@
 import { wrapAngle } from '../geometry/geom';
-import { FOOD_SECTORS, RAY_COUNT, RAY_RANGE, rayAngle } from '../observation/sensors';
+import { FOOD_SECTORS, RAY_COUNT, RAY_RANGE, VIEW_RADIUS, rayAngle } from '../observation/sensors';
 import { TURN_LEVELS, controlToAction, decodeAction, encodeAction } from '../policy/action';
 import { radiusFor } from '../sim/config';
 import { angleOff, headingTo, rollout, visibleHeads, visiblePellets, type PredictedHead, type Rollout } from './local';
@@ -43,7 +43,7 @@ export class GreedyPolicy implements Policy {
       return { action: steer(ctx, headingTo(self, W / 2, W / 2)), debug: { policy: this.id, reason: 'wall', target: [W / 2, W / 2] } };
     }
     let best: [number, number] | undefined, bestScore = -Infinity;
-    for (const p of visiblePellets(world, self)) {
+    for (const p of visiblePellets(world, self, ctx.sensing ?? VIEW_RADIUS)) {
       const d = Math.hypot(p.x - self.x, p.y - self.y);
       // Pellets behind need a U-turn: discount by the turn needed.
       const off = angleOff(self.heading, self.x, self.y, p.x, p.y);
@@ -72,7 +72,8 @@ export class SurvivalPolicy implements Policy {
     // A thin body can slip between two rays: a direction is only as clear as its neighbours allow.
     const raw = s.rayBody.map((b, i) => Math.min(b, s.rayWall[i]));
     const clear = raw.map((c, i) => Math.min(c, 1.6 * raw[(i + 1) % RAY_COUNT], 1.6 * raw[(i + RAY_COUNT - 1) % RAY_COUNT]));
-    const danger = clear.map((c) => 1 - Math.min(1, c / RAY_RANGE));
+    const rayRange = s.ranges?.ray ?? RAY_RANGE;
+    const danger = clear.map((c) => 1 - Math.min(1, c / rayRange));
     // Forward cone (rays 15, 0, 1) must have room for a full-rate turn plus margin.
     const fwd = Math.min(clear[RAY_COUNT - 1], clear[0], clear[1]);
     const safe = fwd > 2.2 * rMin + s.radius * 2;
@@ -111,8 +112,9 @@ export class SurvivalPolicy implements Policy {
 
 /** Earliest collision (s) for each of the 9 turn levels held over `horizon`, under the pm-v1 model. */
 function safetyScan(ctx: DecisionContext, heads: PredictedHead[], boost: boolean, horizon = 1.0): Rollout[] {
-  const pellets = visiblePellets(ctx.world, ctx.self, 300);
-  return TURN_LEVELS.map((turn) => rollout(ctx.world, ctx.self, heads, pellets, { turn, boost, horizon, step: 1 / 15, margin: 12 }));
+  const view = ctx.sensing ?? VIEW_RADIUS;
+  const pellets = visiblePellets(ctx.world, ctx.self, Math.min(300, view));
+  return TURN_LEVELS.map((turn) => rollout(ctx.world, ctx.self, heads, pellets, { turn, boost, horizon, step: 1 / 15, margin: 12, view }));
 }
 
 /** Picks the turn level whose rollout ends closest (in angle) to `heading`, among the given rollouts. */
@@ -139,7 +141,8 @@ export class AggressivePolicy implements Policy {
   decide(ctx: DecisionContext): Decision {
     const { self, world } = ctx;
     const R = world.rules;
-    const heads = visibleHeads(world, self);
+    const view = ctx.sensing ?? VIEW_RADIUS;
+    const heads = visibleHeads(world, self, view);
     const myR = radiusFor(R, self.length);
     let target: PredictedHead | undefined, bestScore = -Infinity;
     for (const h of heads) {
@@ -169,7 +172,7 @@ export class AggressivePolicy implements Policy {
     } else {
       // Collect the biggest visible pellet (death remains first).
       let bs = -Infinity;
-      for (const p of visiblePellets(world, self)) {
+      for (const p of visiblePellets(world, self, view)) {
         const sc = (p.kind === 'death' ? 2 : 1) * p.value / (Math.hypot(p.x - self.x, p.y - self.y) + 40);
         if (sc > bs) { bs = sc; aim = [p.x, p.y]; }
       }
@@ -179,7 +182,7 @@ export class AggressivePolicy implements Policy {
     // Safety: keep the attack only if its rollout is collision-free; otherwise take the safest turn.
     const want = controlToAction({ targetHeading: desired, boost }, self.heading, R, ctx.holdTicks);
     const { turn } = decodeAction(want);
-    const check = rollout(world, self, heads, [], { turn, boost, horizon: 0.8, step: 1 / 15, margin: 6 });
+    const check = rollout(world, self, heads, [], { turn, boost, horizon: 0.8, step: 1 / 15, margin: 6, view });
     if (check.hitTime < Infinity) {
       const scan = safetyScan(ctx, heads, false, 0.8);
       let bi = 0;
@@ -204,7 +207,7 @@ export class PotentialFieldPolicy implements Policy {
     const R = world.rules, W = R.worldSize, g = world.segGrid;
     const r = radiusFor(R, self.length);
     let fx = Math.cos(self.heading) * 0.002, fy = Math.sin(self.heading) * 0.002; // small forward bias
-    for (const p of visiblePellets(world, self, 350)) {
+    for (const p of visiblePellets(world, self, Math.min(350, ctx.sensing ?? VIEW_RADIUS))) {
       const dx = p.x - self.x, dy = p.y - self.y;
       const d = Math.max(10, Math.hypot(dx, dy));
       const k = (p.value / (d * d)) / d;
@@ -245,7 +248,8 @@ export class HybridPolicy implements Policy {
   decide(ctx: DecisionContext): Decision {
     const { self, world } = ctx;
     const R = world.rules;
-    const heads = visibleHeads(world, self);
+    const view = ctx.sensing ?? VIEW_RADIUS;
+    const heads = visibleHeads(world, self, view);
     const myR = radiusFor(R, self.length);
     const canBoost = self.length > R.boostMinLength + 40;
     const plain = safetyScan(ctx, heads, false, 1.0);
@@ -267,7 +271,7 @@ export class HybridPolicy implements Policy {
     }
     if (!goal) {
       let bs = -Infinity;
-      for (const p of visiblePellets(world, self)) {
+      for (const p of visiblePellets(world, self, view)) {
         const d = Math.hypot(p.x - self.x, p.y - self.y);
         const off = angleOff(self.heading, self.x, self.y, p.x, p.y);
         const sc = (p.kind === 'death' ? 2 : 1) * p.value / (d + 40 + 50 * off);

@@ -1,6 +1,6 @@
 import { createPolicy, type ModelStore } from '../ai/registry';
 import type { DecisionDebug, Policy } from '../ai/types';
-import { senseWorld, type Sensors } from '../observation/sensors';
+import { VIEW_RADIUS, rangesFor, senseWorld, type Sensors } from '../observation/sensors';
 import { NOOP_ACTION, actionToControl, decodeAction } from '../policy/action';
 import type { RulesConfig } from './config';
 import { Rng } from './rng';
@@ -30,6 +30,12 @@ export interface MatchConfig {
   durationTicks?: number;
   /** End when at most one snake is alive (tournament rounds without respawn). */
   endWhenOneLeft?: boolean;
+  /**
+   * Sensing distance (u, 200–480) for heuristics / MPC. Undefined = legacy perception (VIEW_RADIUS for
+   * heads/pellets/obstacles, obs-v1 ray ranges), which every published experiment used. Learned obs-v1
+   * models always sense with the fixed obs-v1 ranges.
+   */
+  sensing?: number;
 }
 
 /** Cumulative per-agent record across lives. */
@@ -121,7 +127,13 @@ export class Match {
   /** Sensors for the decision context (cached per call site). */
   private sensorsFor(id: number): () => Sensors {
     let cache: Sensors | undefined;
-    return () => (cache ??= senseWorld(this.world, this.world.snakes[id]));
+    const ranges = rangesFor(this.config.sensing);
+    return () => (cache ??= senseWorld(this.world, this.world.snakes[id], ranges));
+  }
+
+  /** Sensing radius heuristics use (legacy: VIEW_RADIUS). */
+  get sensingRadius(): number {
+    return this.config.sensing === undefined ? VIEW_RADIUS : rangesFor(this.config.sensing).ray;
   }
 
   /** Advances one tick: due decisions → delayed actions take effect → engine tick → bookkeeping. */
@@ -135,7 +147,8 @@ export class Match {
       if (!s.alive) { controls.push({}); continue; }
       if (a.isHuman) { controls.push(this.humanControl); continue; }
       if (decide && a.policy) {
-        const d = a.policy.decide({ world: w, self: s, rng: a.rng, holdTicks: this.decisionInterval, sensors: this.sensorsFor(a.snakeId), prevAction: a.lastDecided });
+        const d = a.policy.decide({ world: w, self: s, rng: a.rng, holdTicks: this.decisionInterval, sensors: this.sensorsFor(a.snakeId), prevAction: a.lastDecided,
+          sensing: this.config.sensing === undefined ? undefined : this.sensingRadius });
         a.debug = d.debug;
         a.lastDecided = d.action;
         a.record.decisions++;

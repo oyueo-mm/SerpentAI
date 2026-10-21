@@ -5,6 +5,7 @@ import { RULES_VERSION } from '../sim/config';
 import type { MatchJSON } from '../sim/match';
 import { AnalysisPanel } from './AnalysisPanel';
 import { CameraController, type CameraMode } from '../render/camera';
+import { AutoQuality, QUALITY, autoLevel, deviceHints, loadQualitySetting, saveQualitySetting, type QualityLevel, type QualitySetting } from '../render/quality';
 import type { Camera } from '../render/renderer';
 import { GameCanvas } from './GameCanvas';
 import { Icon, IconButton, downloadText, formatTime } from './kit';
@@ -41,6 +42,12 @@ export function Arena({ mode, models, active }: Props) {
   const [camMode, setCamMode] = useState<CameraMode>('follow');
   useEffect(() => camera.onModeChange(setCamMode), [camera]);
   const view = useRef<{ cam: Camera; w: number; h: number } | null>(null);
+  // Graphics quality: render-only (the worker's simulation never sees it).
+  const [qualitySetting, setQualitySetting] = useState<QualitySetting>(loadQualitySetting);
+  const [autoLvl, setAutoLvl] = useState<QualityLevel>(() => autoLevel(deviceHints()));
+  const autoQ = useRef(new AutoQuality(autoLvl));
+  const level: QualityLevel = qualitySetting === 'auto' ? autoLvl : qualitySetting;
+  const changeQuality = (q: QualitySetting) => { setQualitySetting(q); saveQualitySetting(q); };
   const learnedIds = models.map((m) => m.id);
   const [arena, setArena] = useState<ArenaSettings>(() => defaultArena(mode, learnedIds));
   const [applied, setApplied] = useState<ArenaSettings>(arena);
@@ -131,14 +138,16 @@ export function Arena({ mode, models, active }: Props) {
       <div className="relative flex min-h-0 flex-1">
         {ui.settingsOpen && (
           <aside className="absolute inset-y-0 left-0 z-30 w-[min(20rem,90vw)] border-r border-slate-200 bg-white shadow-xl lg:static lg:shadow-none">
-            <SettingsPanel arena={arena} onArena={setArena} ui={ui} onUi={setUi} models={models} onApply={() => { restart(0); }} onClose={() => setUi({ ...ui, settingsOpen: false })} />
+            <SettingsPanel quality={qualitySetting} effectiveQuality={level} onQuality={changeQuality} arena={arena} onArena={setArena} ui={ui} onUi={setUi} models={models} onApply={() => { restart(0); }} onClose={() => setUi({ ...ui, settingsOpen: false })} />
           </aside>
         )}
         <div className="relative min-w-0 flex-1">
           <GameCanvas
             frame={sim.frame} prevFrame={sim.prevFrame} frameAt={sim.frameAt} tickInterval={sim.tickInterval} debug={ui.debug} labels={ui.labels} hud smooth
             camera={camera} inspectId={inspectId} onControl={mode === 'play' ? sim.api.human : undefined} touch={mode === 'play' ? touch : undefined}
-            onSelect={mode === 'watch' ? setInspectId : undefined} onFps={setFps} onView={(cam, w, h) => { view.current = { cam, w, h }; }}
+            onSelect={mode === 'watch' ? setInspectId : undefined} quality={QUALITY[level]}
+            onFps={(v) => { setFps(v); if (qualitySetting === 'auto' && active) { const l = autoQ.current.observe(v); if (l !== autoLvl) setAutoLvl(l); } }}
+            onView={(cam, w, h) => { view.current = { cam, w, h }; }}
           />
           {camMode !== 'follow' && (
             <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-lg bg-slate-900/75 px-3 py-1 text-[11px] text-white" data-testid="camera-hint">
@@ -177,7 +186,7 @@ export function Arena({ mode, models, active }: Props) {
         {ui.rightOpen && (
           <aside className="absolute inset-y-0 right-0 z-30 w-[min(20rem,90vw)] border-l border-slate-200 bg-white shadow-xl lg:static lg:shadow-none">
             <AnalysisPanel frame={sim.frame} inspectId={inspectId} onInspect={setInspectId} leaders={sim.ui.leaders} records={sim.ui.records} stats={sim.ui.stats} fps={fps} time={sim.ui.time} models={models} view={view}
-              perception={ui.debug.perception} onPerception={(v) => setUi((u) => ({ ...u, debug: { ...u.debug, perception: v } }))} />
+              sensingSetting={applied.sensing} perception={ui.debug.perception} onPerception={(v) => setUi((u) => ({ ...u, debug: { ...u.debug, perception: v } }))} />
           </aside>
         )}
       </div>

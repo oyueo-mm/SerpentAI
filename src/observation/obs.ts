@@ -1,5 +1,5 @@
 import { DEFAULT_RULES, type RulesConfig } from '../sim/config';
-import { FOOD_RANGE, FOOD_SECTORS, OPP_K, OPP_RANGE, RAY_COUNT, RAY_RANGE, type Sensors } from './sensors';
+import { FOOD_RANGE, FOOD_SECTORS, OPP_K, OPP_RANGE, RAY_COUNT, RAY_RANGE, SENSING_MAX, isObsV1Ranges, type Sensors } from './sensors';
 
 /**
  * obs-v1: fixed-length egocentric observation vector. The same encoder (this file, and its Python port
@@ -26,6 +26,9 @@ export interface PrevAction {
 const clip = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 
 export function encodeObs(s: Sensors, prev: PrevAction, rules: RulesConfig = DEFAULT_RULES): Float32Array {
+  // obs-v1 is defined with fixed ranges; readings taken with other ranges belong to obs-v2 and must never
+  // reach an obs-v1 model unnoticed.
+  if (!isObsV1Ranges(s.ranges)) throw new Error('obs-v1 encoder received sensors with non-obs-v1 ranges (use encodeObsV2)');
   const o = new Float32Array(OBS_SIZE);
   let k = 0;
   o[k++] = clip(Math.log(Math.max(s.length, 1) / rules.startLength) / Math.log(50), -1, 1);
@@ -68,4 +71,28 @@ export function obsFeatureNames(): string[] {
   for (let j = 0; j < OPP_K; j++) n.push(`opp${j}.present`, `opp${j}.x`, `opp${j}.y`, `opp${j}.cos`, `opp${j}.sin`, `opp${j}.speed`, `opp${j}.radius_ratio`);
   n.push('conf.confidence', 'conf.frame_age');
   return n;
+}
+
+/**
+ * obs-v2 (defined, not used by any shipped model): the obs-v1 layout with every distance normalised by
+ * the configured sensing range instead of the fixed obs-v1 ranges, plus one extra feature — the range
+ * itself / 480 — so a model can tell how far it sees. 85 floats. A model trained on obs-v1 must not be
+ * fed obs-v2 (the two differ in meaning and size).
+ */
+export const OBS_V2_VERSION = 'obs-v2';
+export const OBS_V2_SIZE = OBS_SIZE + 1;
+
+export function encodeObsV2(s: Sensors, prev: PrevAction, rules: RulesConfig = DEFAULT_RULES): Float32Array {
+  const rg = s.ranges ?? { ray: RAY_RANGE, food: FOOD_RANGE, opp: OPP_RANGE };
+  const scaled: Sensors = {
+    ...s, ranges: undefined,
+    rayBody: s.rayBody.map((d) => (d / rg.ray) * RAY_RANGE),
+    rayWall: s.rayWall.map((d) => (d / rg.ray) * RAY_RANGE),
+    foodNear: s.foodNear.map((d) => (d / rg.food) * FOOD_RANGE),
+    opponents: s.opponents.map((p) => ({ ...p, x: (p.x / rg.opp) * OPP_RANGE, y: (p.y / rg.opp) * OPP_RANGE })),
+  };
+  const o = new Float32Array(OBS_V2_SIZE);
+  o.set(encodeObs(scaled, prev, rules));
+  o[OBS_SIZE] = Math.min(1, rg.ray / SENSING_MAX);
+  return o;
 }

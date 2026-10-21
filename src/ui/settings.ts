@@ -1,6 +1,7 @@
 import { BUILTIN_POLICIES } from '../ai/registry';
 import type { AgentSpec, MatchConfig } from '../sim/match';
 import { DEFAULT_RULES } from '../sim/config';
+import { SENSING_DEFAULT } from '../observation/sensors';
 import { NO_DEBUG, type DebugFlags } from '../render/renderer';
 
 export type Mode = 'play' | 'watch' | 'tournament' | 'lab' | 'vision' | 'calibration';
@@ -13,6 +14,8 @@ export interface ArenaSettings {
   foodTarget: number;
   decisionInterval: number;
   respawn: boolean;
+  /** Sensing distance (u) for heuristics / MPC; learned obs-v1 models keep their fixed ranges. */
+  sensing: number;
 }
 
 export interface UiSettings {
@@ -28,7 +31,7 @@ export const DEFAULT_UI: UiSettings = { speed: 1, debug: { ...NO_DEBUG }, labels
 export function defaultArena(mode: 'play' | 'watch', learned: string[] = []): ArenaSettings {
   const bots: Record<string, number> = { random: 1, greedy: 2, survival: 2, aggressive: 2, potential: 2, hybrid: 2, mpc: 2 };
   for (const id of learned.slice(0, 2)) bots[id] = 1;
-  return { seed: mode === 'play' ? 1 : 7, bots, foodTarget: DEFAULT_RULES.foodTarget, decisionInterval: 3, respawn: true };
+  return { seed: mode === 'play' ? 1 : 7, bots, foodTarget: DEFAULT_RULES.foodTarget, decisionInterval: 3, respawn: true, sensing: SENSING_DEFAULT };
 }
 
 /** Bot ids in a stable display order. */
@@ -45,5 +48,5 @@ export function toMatchConfig(mode: 'play' | 'watch', a: ArenaSettings): MatchCo
   for (const id of botOrder(a.bots)) {
     for (let i = 0; i < (a.bots[id] ?? 0); i++) agents.push({ policy: id, label: `${id}${a.bots[id] > 1 ? `-${i + 1}` : ''}`, skin: agents.length });
   }
-  return { seed: a.seed, agents, rules: { foodTarget: a.foodTarget }, decisionInterval: a.decisionInterval, respawn: a.respawn, respawnDelay: 2 };
+  return { seed: a.seed, agents, rules: { foodTarget: a.foodTarget }, decisionInterval: a.decisionInterval, respawn: a.respawn, respawnDelay: 2, sensing: a.sensing ?? SENSING_DEFAULT };
 }

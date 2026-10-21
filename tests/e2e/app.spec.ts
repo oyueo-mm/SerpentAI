@@ -219,6 +219,42 @@ test('vision target page keeps the fixed follow camera (no camera input)', async
   expect(await cam()).toEqual(before);   // paused game, untouched camera
 });
 
+test('graphics quality and AI sensing settings: render-only, persisted, labelled', async ({ page, isMobile }) => {
+  const errors = trackErrors(page);
+  await page.goto('./#watch');
+  const root = page.locator('[data-testid=page-watch]');
+  await expect(root.getByTestId('game-canvas')).toBeVisible();
+  await page.waitForTimeout(1000);
+  await root.getByTestId('play-pause').click();
+  await page.waitForTimeout(1200);
+  const time0 = await root.getByTestId('sim-time').innerText();
+  await root.getByTestId('toggle-settings').click();
+  const panel = root.getByTestId('settings-panel');
+  await expect(panel.getByTestId('quality-select')).toBeVisible();
+  for (const q of ['low', 'medium', 'high']) {
+    await panel.getByTestId('quality-select').selectOption(q);
+    await page.waitForTimeout(250);
+    expect(await canvasColours(page, '[data-testid=page-watch] [data-testid=game-canvas]')).toBeGreaterThan(8); // still drawing
+  }
+  await page.waitForTimeout(500);
+  expect(await root.getByTestId('sim-time').innerText()).toBe(time0); // quality never moves the game
+  expect(await page.evaluate(() => localStorage.getItem('serpent.quality'))).toBe('high');
+  // Sensing distance: default 480 u for heuristics/MPC; the panel says learned models keep obs-v1 ranges.
+  await expect(panel.getByTestId('sensing-value')).toHaveText('480 u');
+  await expect(panel).toContainText('obs-v1');
+  await panel.getByTestId('sensing-slider').fill('300');
+  await expect(panel.getByTestId('sensing-value')).toHaveText('300 u');
+  if (!isMobile) {
+    await root.getByTestId('toggle-analysis').click();
+    if (!(await root.getByTestId('analysis-panel').isVisible())) await root.getByTestId('toggle-analysis').click();
+  } else {
+    await root.getByTestId('toggle-analysis').click();
+  }
+  await root.getByTestId('analysis-panel').getByText('AI 시야').click();
+  await expect(root.getByTestId('ai-view-text')).toContainText('obs-v1');
+  expect(errors).toEqual([]);
+});
+
 test('vision target page: canvas only, HUD drawn, ground-truth channel only with gt=1', async ({ page }) => {
   await page.goto('./?view=target&seed=5');
   await expect(page.getByTestId('vision-target')).toBeVisible();

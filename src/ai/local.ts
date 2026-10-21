@@ -24,11 +24,11 @@ export interface PredictedHead {
   speed: number;
 }
 
-export function visibleHeads(world: World, self: Snake): PredictedHead[] {
+export function visibleHeads(world: World, self: Snake, radius = VIEW_RADIUS): PredictedHead[] {
   const out: PredictedHead[] = [];
   for (const o of world.snakes) {
     if (!o.alive || o.id === self.id) continue;
-    if (Math.hypot(o.x - self.x, o.y - self.y) > VIEW_RADIUS) continue;
+    if (Math.hypot(o.x - self.x, o.y - self.y) > radius) continue;
     out.push({ id: o.id, x: o.x, y: o.y, vx: Math.cos(o.heading) * o.speed, vy: Math.sin(o.heading) * o.speed, r: radiusFor(world.rules, o.length), length: o.length, heading: o.heading, speed: o.speed });
   }
   return out;
@@ -47,11 +47,11 @@ export function visiblePellets(world: World, self: Snake, radius = VIEW_RADIUS):
  * Clearance (u) of a head circle of radius r at (x, y) at prediction time t: distance to the nearest
  * visible body surface, predicted head capsule or wall, capped at CLEAR_CAP. Negative = collision.
  */
-export function clearanceAt(world: World, self: Snake, x: number, y: number, r: number, heads: PredictedHead[], t: number): number {
+export function clearanceAt(world: World, self: Snake, x: number, y: number, r: number, heads: PredictedHead[], t: number, view = VIEW_RADIUS): number {
   const W = world.rules.worldSize, g = world.segGrid;
   let best = Math.min(CLEAR_CAP, x - r, y - r, W - x - r, W - y - r);
   const reach = r + world.rules.radiusMax + CLEAR_CAP;
-  const vr2 = (VIEW_RADIUS + 40) * (VIEW_RADIUS + 40);
+  const vr2 = (view + 40) * (view + 40);
   g.query(x - reach, y - reach, x + reach, y + reach, (k) => {
     const o = g.owner[k];
     if (o === self.id || !world.snakes[o].alive) return;
@@ -93,6 +93,8 @@ export interface RolloutSpec {
   horizon: number;
   step: number;
   margin: number;
+  /** Perception radius for obstacles (default VIEW_RADIUS). */
+  view?: number;
 }
 
 /** Simulates the own head under a piecewise-constant turn command with the pm-v1 model. */
@@ -126,7 +128,7 @@ export function rollout(world: World, self: Snake, heads: PredictedHead[], pelle
       const lim = lim0 + p.r;
       if (distPointSegSq(p.x, p.y, px, py, x, y) < lim * lim) { eaten.add(p.id); food += p.value; }
     }
-    const c = clearanceAt(world, self, x, y, r, heads, t);
+    const c = clearanceAt(world, self, x, y, r, heads, t, spec.view);
     if (c < minClear) minClear = c;
     if (c < spec.margin) pen += (spec.margin - c) / spec.margin;
     if (c <= 0) { hitTime = t; hit = [x, y]; break; }

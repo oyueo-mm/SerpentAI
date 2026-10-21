@@ -15,6 +15,11 @@ export interface DecisionContext {
   sensors: () => Sensors;
   /** Previously executed act-v1 action. */
   prevAction: number;
+  /**
+   * Perception radius (u) for heuristics / MPC (heads, pellets, obstacles). Undefined = the legacy
+   * VIEW_RADIUS behaviour of the published experiments. Learned obs-v1 models ignore it.
+   */
+  sensing?: number;
 }
 
 /** One candidate trajectory the MPC actually evaluated (for the explanation overlay). */

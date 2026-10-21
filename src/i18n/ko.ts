@@ -83,6 +83,11 @@ export const ko = {
     debug: '디버그 그래픽',
     labels: '이름 표시',
     hint: '설정은 "적용 후 새 경기"를 누르면 반영됩니다.',
+    sensing: 'AI 감지 거리 (휴리스틱·MPC)',
+    sensingHint: '휴리스틱·MPC가 보는 범위(360°). 학습 모델(PPO·BC·DAgger)은 학습 때의 obs-v1 고정 범위(장애물·먹이 400 u, 상대 450 u)를 그대로 씁니다.',
+    quality: '그래픽 품질',
+    qualityNames: { auto: '자동', high: '높음', medium: '보통', low: '낮음' } as Record<'auto' | 'high' | 'medium' | 'low', string>,
+    qualityHint: '그림만 바뀌며 게임 진행 속도·AI 결과는 같습니다. 자동: 휴대폰은 보통(저사양은 낮음)에서 시작해 FPS가 목표의 80% 아래로 계속 떨어지면 한 단계 낮춥니다.',
   },
   debug: {
     colliders: '충돌 캡슐·머리 반경',

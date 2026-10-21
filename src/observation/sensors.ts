@@ -18,6 +18,31 @@ export const FOOD_RANGE = 400;
 export const OPP_K = 4;
 export const OPP_RANGE = 450;
 
+/** Sensing distances (u) for rays, food sectors and opponent heads. */
+export interface SensorRanges {
+  ray: number;
+  food: number;
+  opp: number;
+}
+
+/** The fixed ranges of obs-v1 (what every shipped learned model was trained with). */
+export const OBS_V1_RANGES: Readonly<SensorRanges> = Object.freeze({ ray: RAY_RANGE, food: FOOD_RANGE, opp: OPP_RANGE });
+/** User-adjustable sensing distance for heuristics / MPC (and obs-v2). Capped by the camera guarantee. */
+export const SENSING_MIN = 200;
+export const SENSING_MAX = VIEW_RADIUS;
+export const SENSING_DEFAULT = VIEW_RADIUS;
+
+/** Ranges for a configured sensing distance; undefined = legacy obs-v1 ranges (published experiments). */
+export function rangesFor(sensing?: number): SensorRanges {
+  if (sensing === undefined || !Number.isFinite(sensing)) return { ...OBS_V1_RANGES };
+  const r = Math.max(SENSING_MIN, Math.min(SENSING_MAX, sensing));
+  return { ray: r, food: r, opp: r };
+}
+
+export function isObsV1Ranges(r: SensorRanges | undefined): boolean {
+  return !r || (r.ray === RAY_RANGE && r.food === FOOD_RANGE && r.opp === OPP_RANGE);
+}
+
 export interface OpponentReading {
   /** Egocentric head position (u). */
   x: number;
@@ -49,6 +74,8 @@ export interface Sensors {
   confidence: number;
   /** Age of the frame the reading came from (s); 0 for engine state. */
   frameAge: number;
+  /** Ranges used, present only when they differ from obs-v1 (obs-v1 readings stay byte-identical). */
+  ranges?: SensorRanges;
 }
 
 export function rayAngle(i: number): number {
@@ -63,23 +90,24 @@ export function sectorOf(phi: number): number {
   return Math.min(FOOD_SECTORS - 1, Math.floor(a / w));
 }
 
-/** Exact sensor readings for `self` from the engine state (State mode). */
-export function senseWorld(world: World, self: Snake): Sensors {
+/** Exact sensor readings for `self` from the engine state (State mode), with obs-v1 ranges by default. */
+export function senseWorld(world: World, self: Snake, ranges: SensorRanges = OBS_V1_RANGES): Sensors {
+  const RAY = ranges.ray, FOOD = ranges.food, OPP = ranges.opp;
   world.ensureGrid();
   const R = world.rules, g = world.segGrid;
   const hx = self.x, hy = self.y, th = self.heading;
   const fx = Math.cos(th), fy = Math.sin(th);
   const rx = -fy, ry = fx;
-  const rayBody = new Array<number>(RAY_COUNT).fill(RAY_RANGE);
+  const rayBody = new Array<number>(RAY_COUNT).fill(RAY);
   const rayWall = new Array<number>(RAY_COUNT);
   const dirs: [number, number][] = [];
   for (let i = 0; i < RAY_COUNT; i++) {
     const a = th + rayAngle(i);
     const dx = Math.cos(a), dy = Math.sin(a);
     dirs.push([dx, dy]);
-    rayWall[i] = Math.min(RAY_RANGE, rayBox(hx, hy, dx, dy, R.worldSize));
+    rayWall[i] = Math.min(RAY, rayBox(hx, hy, dx, dy, R.worldSize));
   }
-  const reach = RAY_RANGE + R.radiusMax;
+  const reach = RAY + R.radiusMax;
   g.query(hx - reach, hy - reach, hx + reach, hy + reach, (k) => {
     const o = g.owner[k];
     if (o === self.id || !world.snakes[o].alive) return;
@@ -90,15 +118,15 @@ export function senseWorld(world: World, self: Snake): Sensors {
   });
 
   const foodSum = new Array<number>(FOOD_SECTORS).fill(0);
-  const foodNear = new Array<number>(FOOD_SECTORS).fill(FOOD_RANGE);
+  const foodNear = new Array<number>(FOOD_SECTORS).fill(FOOD);
   // Visit pellets in id order so the float sums do not depend on grid bucket order.
   const near: Pellet[] = [];
-  world.queryFood(hx - FOOD_RANGE, hy - FOOD_RANGE, hx + FOOD_RANGE, hy + FOOD_RANGE, (p) => near.push(p));
+  world.queryFood(hx - FOOD, hy - FOOD, hx + FOOD, hy + FOOD, (p) => near.push(p));
   near.sort((a, b) => a.id - b.id);
   for (const p of near) {
     const dx = p.x - hx, dy = p.y - hy;
     const d = Math.hypot(dx, dy);
-    if (d >= FOOD_RANGE) continue;
+    if (d >= FOOD) continue;
     const s = sectorOf(Math.atan2(dx * rx + dy * ry, dx * fx + dy * fy));
     foodSum[s] += p.value;
     if (d < foodNear[s]) foodNear[s] = d;
@@ -109,7 +137,7 @@ export function senseWorld(world: World, self: Snake): Sensors {
     if (o.id === self.id || !o.alive) continue;
     const dx = o.x - hx, dy = o.y - hy;
     const d = Math.hypot(dx, dy);
-    if (d >= OPP_RANGE) continue;
+    if (d >= OPP) continue;
     let rel = o.heading - th;
     rel = Math.atan2(Math.sin(rel), Math.cos(rel));
     opponents.push({ x: dx * fx + dy * fy, y: dx * rx + dy * ry, relHeading: rel, speed: o.speed, radius: radiusFor(R, o.length), d, id: o.id });
@@ -123,5 +151,6 @@ export function senseWorld(world: World, self: Snake): Sensors {
     opponents: opponents.slice(0, OPP_K).map(({ x, y, relHeading, speed, radius }) => ({ x, y, relHeading, speed, radius })),
     confidence: 1,
     frameAge: 0,
+    ...(isObsV1Ranges(ranges) ? {} : { ranges: { ...ranges } }),
   };
 }

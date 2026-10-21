@@ -93,9 +93,14 @@ interface Props {
   view: MutableRefObject<{ cam: Camera; w: number; h: number } | null>;
   perception: boolean;
   onPerception: (v: boolean) => void;
+  sensingSetting: number | undefined;
 }
 
-export function AnalysisPanel({ frame, inspectId, onInspect, leaders, records, stats, fps, time, models, view, perception, onPerception }: Props) {
+export function AnalysisPanel({ frame, inspectId, onInspect, leaders, records, stats, fps, time, models, view, perception, onPerception, sensingSetting }: Props) {
+  const sensorInfo = useCallback(() => {
+    const d = frame.current?.debug;
+    return d?.sensorRanges && d.sensorsKind && d.sensorsId === inspectId ? { ranges: d.sensorRanges, kind: d.sensorsKind } : null;
+  }, [frame, inspectId]);
   const head = useCallback((): [number, number] | null => {
     const sn = frame.current?.snakes.find((x) => x.id === inspectId && x.alive);
     return sn ? [sn.x, sn.y] : null;
@@ -150,7 +155,7 @@ export function AnalysisPanel({ frame, inspectId, onInspect, leaders, records, s
             </>
           ) : <p className="text-xs text-slate-400">{t.common.loading}</p>}
         </Section>
-        <AiViewSection view={view} head={head} perception={perception} onPerception={onPerception} />
+        <AiViewSection view={view} head={head} perception={perception} onPerception={onPerception} info={sensorInfo} setting={sensingSetting} />
         <Section title={t.leaders.title}>
           <ol className="space-y-0.5" data-testid="leaderboard">
             {leaders.slice(0, 16).map((r, i) => (

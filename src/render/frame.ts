@@ -3,7 +3,7 @@ import { integrateArc } from '../geometry/geom';
 import { decodeAction } from '../policy/action';
 import { radiusFor } from '../sim/config';
 import type { Match } from '../sim/match';
-import { senseWorld, type Sensors } from '../observation/sensors';
+import { OBS_V1_RANGES, rangesFor, senseWorld, type SensorRanges, type Sensors } from '../observation/sensors';
 
 /** Render snapshot of one snake. body = [x0, y0, …] tail → head (the head point is last). */
 export interface SnakeFrame {
@@ -37,6 +37,9 @@ export interface FrameDebug {
   /** Exact obs-v1 sensor readings of the focused snake this tick (for the "AI field of view" overlay). */
   sensors?: Sensors | null;
   sensorsId?: number;
+  /** Which sensing applies to that snake: a learned model's fixed obs-v1, the user setting, or legacy. */
+  sensorsKind?: 'obs-v1' | 'setting' | 'legacy';
+  sensorRanges?: SensorRanges;
 }
 
 export interface Frame {
@@ -97,8 +100,11 @@ export function buildFrame(match: Match, focusId: number, opts: { debug: boolean
       extrapolations[s.id] = pts;
     }
     const focus = w.snakes[focusId];
+    const learned = match.agents[focusId]?.policy?.kind === 'learned';
+    const kind = learned ? 'obs-v1' : match.config.sensing === undefined ? 'legacy' : 'setting';
+    const ranges = learned ? { ...OBS_V1_RANGES } : rangesFor(match.config.sensing);
     debug = { decisions, trail: opts.trail.slice(), extrapolations, gridCell: w.rules.gridCell,
-      sensors: focus?.alive ? senseWorld(w, focus) : null, sensorsId: focusId };
+      sensors: focus?.alive ? senseWorld(w, focus, ranges) : null, sensorsId: focusId, sensorsKind: kind, sensorRanges: ranges };
   }
   return { tick: w.tick, time: w.time, worldSize: w.rules.worldSize, tickRate: w.rules.tickRate, maxTurnRate: w.rules.maxTurnRate, boostMinLength: w.rules.boostMinLength, snakes, food, focusId, debug, ended: match.ended };
 }

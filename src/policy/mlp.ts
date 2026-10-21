@@ -1,5 +1,6 @@
 import { ACTION_VERSION, NUM_ACTIONS, actionMask, decodeAction } from './action';
 import { OBS_SIZE, OBS_VERSION, encodeObs } from '../observation/obs';
+import { senseWorld } from '../observation/sensors';
 import { RULES_VERSION } from '../sim/config';
 import type { Decision, DecisionContext, Policy } from '../ai/types';
 
@@ -89,7 +90,9 @@ export class MlpPolicy implements Policy {
 
   decide(ctx: DecisionContext): Decision {
     const prev = decodeAction(ctx.prevAction);
-    const obs = encodeObs(ctx.sensors(), prev, ctx.world.rules);
+    // Always obs-v1 sensors with obs-v1 ranges, whatever sensing distance the match configures for
+    // heuristics: a model must see exactly the inputs it was trained on.
+    const obs = encodeObs(senseWorld(ctx.world, ctx.self), prev, ctx.world.rules);
     return this.decideFromObs(obs, ctx.self.length > ctx.world.rules.boostMinLength, ctx.rng.next());
   }
 
